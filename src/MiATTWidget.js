@@ -207,6 +207,9 @@ async function aesEncrypt(text, password) {
   const salt = new Uint8Array(8);
   if (globalThis.crypto?.getRandomValues) {
     globalThis.crypto.getRandomValues(salt);
+  } else if (globalThis.crypto?.randomUUID) {
+    const uuidStr = globalThis.crypto.randomUUID().replace(/-/g, "");
+    for (let i = 0; i < 8; i++) salt[i] = parseInt(uuidStr.substring(i * 2, i * 2 + 2), 16);
   } else {
     for (let i = 0; i < 8; i++) salt[i] = Math.floor(Math.random() * 256);
   }
@@ -326,7 +329,10 @@ async function validateATTCredentials(phone, password) {
       false
     );
     const sessionKey = extractSessionKey(bootRes.data) || CONFIG.fallbackSessionKey;
-    const subscriberId = (Date.now().toString(36) + Math.random().toString(36).substring(4)).toUpperCase();
+    const rPart = globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID().split("-")[0]
+      : Math.random().toString(36).substring(4);
+    const subscriberId = (Date.now().toString(36) + rPart).toUpperCase();
     const encPass = await aesEncrypt(password, CONFIG.clientCipherKey);
     const loginPlain = JSON.stringify({ msisdn: phone, ["encrypted_" + "password"]: encPass, migrationAccepted: false });
     const encPayload = await aesEncrypt(loginPlain, sessionKey);
@@ -443,7 +449,10 @@ async function fetchATTData(creds) {
     false
   );
   const sessionKey = extractSessionKey(bootRes.data) || CONFIG.fallbackSessionKey;
-  const subscriberId = (Date.now().toString(36) + Math.random().toString(36).substring(4)).toUpperCase();
+  const rPart = globalThis.crypto?.randomUUID
+    ? globalThis.crypto.randomUUID().split("-")[0]
+    : Math.random().toString(36).substring(4);
+  const subscriberId = (Date.now().toString(36) + rPart).toUpperCase();
 
   const encPass = await aesEncrypt(password, CONFIG.clientCipherKey);
   const loginPlain = JSON.stringify({ msisdn: phone, ["encrypted_" + "password"]: encPass, migrationAccepted: false });

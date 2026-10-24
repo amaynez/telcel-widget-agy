@@ -988,8 +988,8 @@ public actor TelcelNetworkService {
         // Optimization: Avoid localizedStandardCompare which introduces unnecessary overhead.
         // Custom split-and-parse sort is much faster for suffix keys (e.g. "0-1-1").
         let suffixes = activeSuffixes.sorted { a, b in
-            let aParts = a.split(separator: "-")
-            let bParts = b.split(separator: "-")
+            let aParts = a.split(separator: "-", omittingEmptySubsequences: false)
+            let bParts = b.split(separator: "-", omittingEmptySubsequences: false)
             let len = min(aParts.count, bParts.count)
             for i in 0..<len {
                 if let numA = Int(aParts[i]), let numB = Int(bParts[i]), numA != numB {

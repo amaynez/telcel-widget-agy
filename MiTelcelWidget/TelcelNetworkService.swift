@@ -985,7 +985,22 @@ public actor TelcelNetworkService {
             }
         }
         let activeSuffixes = suffixesSet.isEmpty ? webSuffixesSet : suffixesSet
-        let suffixes = activeSuffixes.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        // Optimization: Avoid localizedStandardCompare which introduces unnecessary overhead.
+        // Custom split-and-parse sort is much faster for suffix keys (e.g. "0-1-1").
+        let suffixes = activeSuffixes.sorted { a, b in
+            let aParts = a.split(separator: "-", omittingEmptySubsequences: false)
+            let bParts = b.split(separator: "-", omittingEmptySubsequences: false)
+            let len = min(aParts.count, bParts.count)
+            for i in 0..<len {
+                if let numA = Int(aParts[i]), let numB = Int(bParts[i]), numA != numB {
+                    return numA < numB
+                }
+                if aParts[i] != bParts[i] {
+                    return aParts[i] < bParts[i]
+                }
+            }
+            return aParts.count < bParts.count
+        }
 
         func toDouble(_ raw: Any?) -> Double? {
             guard let raw else { return nil }

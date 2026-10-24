@@ -242,9 +242,13 @@ async function aesEncrypt(text, password) {
 async function aesDecrypt(b64, password) {
   const buf = base64ToBytes(b64);
   if (buf.length < 16) throw new Error("Payload cifrado inválido: longitud insuficiente");
+
+  let mismatch = 0;
   for (let i = 0; i < 8; i++) {
-    if (buf[i] !== SALTED_MAGIC[i]) throw new Error("Cabecera Salted__ inválida en payload");
+    mismatch |= (buf[i] ^ SALTED_MAGIC[i]);
   }
+  if (mismatch !== 0) throw new Error("Cabecera Salted__ inválida en payload");
+
   const salt = buf.slice(8, 16);
   const ct = buf.slice(16);
   const { key, iv } = evpBytesToKey(password, salt);

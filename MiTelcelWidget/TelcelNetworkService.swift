@@ -167,6 +167,19 @@ public struct TelcelUsageEntry: Codable, Equatable, Sendable {
         return "\(tag) • ⏱️ \(updatedAtString)\(isCached ? " ☁️" : "")"
     }
 
+    public var accessibilitySummary: String {
+        let daysText = "\(daysLeft) \(daysLeft == 1 ? "día restante" : "días restantes")"
+        let allowanceText: String
+        if isUnlimited {
+            allowanceText = availableMB > 0
+                ? String(format: "%.1f GB velocidad normal", availableMB / gbDivisor)
+                : "Plan sin límite"
+        } else {
+            allowanceText = String(format: "%.2f GB disponibles de %.1f GB", remainingGB, totalGB)
+        }
+        return "\(carrierDisplayName): \(allowanceText), \(daysText)"
+    }
+
     public static let sample = TelcelUsageEntry(
         date: .now,
         consumedMB: 9500,
@@ -1612,8 +1625,8 @@ public struct MiTelcelWidgetCardContent: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(entry.isUnlimited ? "\(entry.carrierDisplayName): \(entry.availableMB > 0 ? String(format: "%.1f GB velocidad normal", entry.availableMB / entry.gbDivisor) : "Plan sin límite"), \(entry.daysLeft) \(entry.daysLeft == 1 ? "día restante" : "días restantes")" : "\(entry.carrierDisplayName): \(String(format: "%.2f", entry.remainingGB)) GB disponibles de \(String(format: "%.1f", entry.totalGB)) GB, \(entry.daysLeft) \(entry.daysLeft == 1 ? "día restante" : "días restantes")")
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(entry.accessibilitySummary)
         }
     }
 }

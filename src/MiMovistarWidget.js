@@ -60,9 +60,7 @@ async function validateMovistarCredentials(pId) {
     );
     return Boolean(res?.content && typeof res.content === "string" && res.content.includes(":"));
   } catch (err) {
-    if (String(err?.message || "").includes("400") || String(err?.message || "").includes("401") || String(err?.message || "").includes("403")) {
-      return false;
-    }
+    if (/\b(400|401|403|404)\b/.test(err?.message || "")) return false;
     throw err;
   }
 }
@@ -756,6 +754,7 @@ if (typeof module !== "undefined") {
     createWidget,
     loadCache,
     validateMovistarCredentials,
+    validateMovistarSession: validateMovistarCredentials,
     loginWithWebView,
     getSessionToken,
     getCredentials,

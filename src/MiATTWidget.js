@@ -358,9 +358,7 @@ async function validateATTCredentials(phone, password) {
     }
     return Boolean(loginJson?.token);
   } catch (err) {
-    if (String(err?.message || "").includes("400") || String(err?.message || "").includes("401") || String(err?.message || "").includes("403")) {
-      return false;
-    }
+    if (/\b(400|401|403|404)\b/.test(err?.message || "")) return false;
     throw err;
   }
 }

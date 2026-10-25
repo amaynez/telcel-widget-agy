@@ -62,6 +62,7 @@ const {
   createWidget: createMovistarWidget,
   loadCache: loadMovistarCache,
   validateMovistarCredentials,
+  validateMovistarSession,
   loginWithWebView,
   getSessionToken,
   getCredentials: getMovistarCredentials,
@@ -1249,6 +1250,12 @@ const testNetworkValidators = async () => {
     globalThis.fetch = async () => ({ ok: false, status: 400, json: async () => ({ error: "bad request" }) });
     assert.equal(await validateTelcelCredentials("5512345678", "wrong_pw"), false);
 
+    globalThis.fetch = async () => { throw new Error("fetch failed: connect ECONNREFUSED 127.0.0.1:4000"); };
+    await assert.rejects(() => validateTelcelCredentials("5512345678", "pw"), /ECONNREFUSED/);
+
+    globalThis.fetch = async () => { throw new Error("timeout after 400ms"); };
+    await assert.rejects(() => validateTelcelCredentials("5512345678", "pw"), /400ms/);
+
     globalThis.fetch = async () => { throw new Error("Network offline"); };
     await assert.rejects(() => validateTelcelCredentials("5512345678", "pw"), /Network offline/);
 
@@ -1285,13 +1292,25 @@ const testNetworkValidators = async () => {
     };
     assert.equal(await validateBaitCredentials("5512345678"), false);
 
+    globalThis.fetch = async (url) => {
+      if (url.includes("/get/consumption")) {
+        return { ok: false, status: 403, json: async () => ({ error: "Forbidden" }) };
+      }
+      return { ok: true, text: async () => "ordKey" };
+    };
+    assert.equal(await validateBaitCredentials("5512345678"), false);
+
     const origWarn = console.warn;
     console.warn = () => {};
+    globalThis.fetch = async () => { throw new Error("connect ECONNREFUSED 127.0.0.1:4000"); };
+    await assert.rejects(() => validateBaitCredentials("5512345678"), /ECONNREFUSED/);
+
     globalThis.fetch = async () => { throw new Error("Network offline"); };
     await assert.rejects(() => validateBaitCredentials("5512345678"), /Network offline/);
     console.warn = origWarn;
 
-    // 3. validateMovistarCredentials
+    // 3. validateMovistarCredentials & validateMovistarSession
+    assert.equal(validateMovistarSession, validateMovistarCredentials);
     globalThis.fetch = async () => ({ ok: true, json: async () => ({ content: "cipher:iv" }) });
     assert.equal(await validateMovistarCredentials("test_pid"), true);
 
@@ -1300,6 +1319,12 @@ const testNetworkValidators = async () => {
 
     globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({ response: "403" }) });
     assert.equal(await validateMovistarCredentials("test_pid"), false);
+
+    globalThis.fetch = async () => ({ ok: false, status: 404, json: async () => ({ response: "404" }) });
+    assert.equal(await validateMovistarCredentials("test_pid"), false);
+
+    globalThis.fetch = async () => { throw new Error("connect ECONNREFUSED 127.0.0.1:4000"); };
+    await assert.rejects(() => validateMovistarCredentials("test_pid"), /ECONNREFUSED/);
 
     globalThis.fetch = async () => { throw new Error("Network offline"); };
     await assert.rejects(() => validateMovistarCredentials("test_pid"), /Network offline/);

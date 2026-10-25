@@ -353,6 +353,15 @@ try {
   const invalid = await validateATTCredentials("5512345678", "wrongpass");
   assert.equal(invalid, false);
 
+  globalThis.fetch = async () => ({ ok: false, status: 403 });
+  assert.equal(await validateATTCredentials("5512345678", "wrongpass"), false);
+
+  globalThis.fetch = async () => ({ ok: false, status: 404 });
+  assert.equal(await validateATTCredentials("5512345678", "wrongpass"), false);
+
+  globalThis.fetch = async () => { throw new Error("connect ECONNREFUSED 127.0.0.1:4000"); };
+  await assert.rejects(() => validateATTCredentials("5512345678", "pass"), /ECONNREFUSED/);
+
   globalThis.fetch = async () => { throw new Error("Offline network"); };
   await assert.rejects(() => validateATTCredentials("5512345678", "pass"), /Offline network/);
 } finally {

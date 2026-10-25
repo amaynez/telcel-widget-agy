@@ -95,7 +95,7 @@ struct ContentView: View {
                             TextField("Número a 10 dígitos", text: $phone)
                                 #if os(iOS)
                                 .keyboardType(.numberPad)
-                                .textContentType(.telephoneNumber)
+                                .textContentType(.username)
                                 #endif
                                 .textFieldStyle(.roundedBorder)
                             HStack(spacing: 6) {

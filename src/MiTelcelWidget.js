@@ -376,10 +376,21 @@ function parseTelcelResponse(payload) {
 
     if (typeof node.id === "string" && node.config) {
       byId[node.id] = node.config;
-      const m = node.id.match(/^tabs-plans-v2-plan-name-(web-)?(\d+-\d+-\d+)$/);
-      if (m) {
-        if (m[1]) webSuffixesSet.add(m[1] + m[2]);
-        else suffixesSet.add(m[2]);
+      const id = node.id;
+      if (id.length > 24 && id.charCodeAt(0) === 116 && id.startsWith("tabs-plans-v2-plan-name-")) {
+        const isWeb = id.charCodeAt(24) === 119;
+        const start = isWeb ? 28 : 24;
+        let valid = true;
+        let hyphens = 0;
+        for (let i = start; i < id.length; i++) {
+          const c = id.charCodeAt(i);
+          if (c === 45) hyphens++;
+          else if (c < 48 || c > 57) { valid = false; break; }
+        }
+        if (valid && hyphens === 2) {
+          if (isWeb) webSuffixesSet.add(id.slice(24));
+          else suffixesSet.add(id.slice(24));
+        }
       }
     }
 

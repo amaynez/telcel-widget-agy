@@ -15,3 +15,9 @@
 **Learning:** While using specific keyboard types (like number pads) is a great start for data entry on mobile devices, users still have to manually type their credentials if the OS doesn't recognize what type of data is being asked for. Adding explicit content types to form fields (`.textContentType` in SwiftUI) acts as a semantic hint that can improve autofill suggestions and reduce manual entry. Note that it does not guarantee a single-tap completion, as Password AutoFill depends on correctly typed login fields (e.g. using `.username`), saved credentials in iCloud Keychain, device settings, and associated domains where relevant.
 
 **Action:** Always complement specific keyboard types with appropriate `.textContentType` modifiers (e.g., `.telephoneNumber`, `.username`, `.password`, `.emailAddress`) in SwiftUI forms (and their equivalents in HTML/other frameworks) to act as semantic hints for OS-level autofill, which can significantly reduce friction during authentication or setup flows.
+
+## 2026-10-24 - Consistent Semantic Autofill Hints for Login Identifiers
+
+**Learning:** When dealing with mobile carrier authentication forms in SwiftUI, relying solely on `.telephoneNumber` for phone number inputs can disrupt the integration with Password AutoFill, especially when the phone number acts as the primary login identifier alongside a password. By consistently using `.username` across all carriers (even those without passwords, for consistency), the OS can better understand the login context.
+
+**Action:** Use `.username` instead of `.telephoneNumber` for login identifiers (like phone numbers) in SwiftUI to integrate properly with Password AutoFill.

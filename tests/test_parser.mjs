@@ -99,6 +99,8 @@ const fixture = {
       { id: "tabs-plans-v2-plan-name-0-2-0", config: { value: "Bolsa vacía" } },
       { id: "tabs-plans-v2-total-data-value-0-2-0", config: { value: "0" } },
       { id: "tabs-plans-v2-total-data-unit-0-2-0", config: { value: "MB" } },
+      // Non-numeric plan-name node that should be ignored
+      { id: "tabs-plans-v2-plan-name-header-info", config: { value: "Encabezado Info" } },
       // Base plan bucket
       { id: "tabs-plans-v2-plan-name-0-0-0", config: { value: "Datos de mi plan" } },
       { id: "tabs-plans-v2-total-data-value-0-0-0", config: { value: "10" } },

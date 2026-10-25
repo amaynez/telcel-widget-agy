@@ -15,3 +15,8 @@
 **Learning:** While using specific keyboard types (like number pads) is a great start for data entry on mobile devices, users still have to manually type their credentials if the OS doesn't recognize what type of data is being asked for. Adding explicit content types to form fields (`.textContentType` in SwiftUI) acts as a semantic hint that can improve autofill suggestions and reduce manual entry. Note that it does not guarantee a single-tap completion, as Password AutoFill depends on correctly typed login fields (e.g. using `.username`), saved credentials in iCloud Keychain, device settings, and associated domains where relevant.
 
 **Action:** Always complement specific keyboard types with appropriate `.textContentType` modifiers (e.g., `.telephoneNumber`, `.username`, `.password`, `.emailAddress`) in SwiftUI forms (and their equivalents in HTML/other frameworks) to act as semantic hints for OS-level autofill, which can significantly reduce friction during authentication or setup flows.
+
+## 2024-11-20 - Agrupación Semántica para VoiceOver en Widgets SwiftUI
+
+**Learning:** When building small, information-dense components like iOS Widgets, VoiceOver can read every individual `Text`, `Image`, or shape separately. This results in a disjointed, verbose, and confusing experience for screen reader users, who have to swipe through multiple elements just to understand the overall status of a single card.
+**Action:** Always use `.accessibilityElement(children: .combine)` on container views (like `VStack` or `HStack`) that represent a unified concept, and provide a clear, concise `.accessibilityLabel` that summarizes the entire content logically, rather than relying on the default element-by-element reading order.

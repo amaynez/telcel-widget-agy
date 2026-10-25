@@ -1612,6 +1612,8 @@ public struct MiTelcelWidgetCardContent: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(entry.isUnlimited ? "\(entry.carrierDisplayName): Plan sin límite, \(entry.daysLeft) días restantes" : "\(entry.carrierDisplayName): \(String(format: "%.2f", entry.remainingGB)) GB disponibles de \(String(format: "%.1f", entry.totalGB)) GB, \(entry.daysLeft) días restantes")
         }
     }
 }

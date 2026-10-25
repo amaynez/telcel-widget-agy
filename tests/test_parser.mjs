@@ -1514,6 +1514,7 @@ assert(swiftBaitEntry.availableMB == 11264)
 assert(swiftBaitEntry.remainingGB == 11.0)
 assert(swiftBaitEntry.totalGB == 15.0)
 assert(swiftBaitEntry.footerText.hasPrefix("Plan+Bono • ⏱️ "))
+assert(swiftBaitEntry.accessibilitySummary == "Mi Bait: 11.00 GB disponibles de 15.0 GB, 12 días restantes")
 
 // Swift Movistar Test
 let swiftMovJson = #"""
@@ -1558,6 +1559,7 @@ assert(swiftMovEntry.availableMB == 4608)
 assert(swiftMovEntry.daysLeft == 7)
 assert(swiftMovEntry.remainingGB == 4.5)
 assert(swiftMovEntry.totalGB == 12.0)
+assert(swiftMovEntry.accessibilitySummary == "Mi Movistar: 4.50 GB disponibles de 12.0 GB, 7 días restantes")
 
 // Swift AT&T Test
 let swiftAttJson = #"""
@@ -1608,6 +1610,40 @@ assert(swiftAttEntry.availableMB == 9216)
 assert(swiftAttEntry.daysLeft == 9)
 assert(swiftAttEntry.remainingGB == 9.0)
 assert(swiftAttEntry.totalGB == 14.0)
+assert(swiftAttEntry.accessibilitySummary == "Mi AT&T: 9.00 GB disponibles de 14.0 GB, 9 días restantes")
+
+// Swift VoiceOver Accessibility Summary Tests
+let swiftUnlimEntry = TelcelUsageEntry(
+    date: .now,
+    consumedMB: 1000,
+    totalMB: 0,
+    availableMB: 5120,
+    daysLeft: 1,
+    cutoffDate: "1 de noviembre",
+    planName: "Bait Ilimitado",
+    buckets: [],
+    updatedAtString: "12:00",
+    isCached: false,
+    carrier: "bait",
+    isUnlimited: true
+)
+assert(swiftUnlimEntry.accessibilitySummary == "Mi Bait: 5.0 GB velocidad normal, 1 día restante")
+
+let swiftUnlimSlowEntry = TelcelUsageEntry(
+    date: .now,
+    consumedMB: 10000,
+    totalMB: 0,
+    availableMB: 0,
+    daysLeft: 3,
+    cutoffDate: "3 de noviembre",
+    planName: "Bait Ilimitado",
+    buckets: [],
+    updatedAtString: "12:00",
+    isCached: false,
+    carrier: "bait",
+    isUnlimited: true
+)
+assert(swiftUnlimSlowEntry.accessibilitySummary == "Mi Bait: Plan sin límite, 3 días restantes")
 
 // Swift AT&T Crypto Test
 let attPlain = "Swift AT&T Crypto Test Payload"

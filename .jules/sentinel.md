@@ -7,3 +7,7 @@
 **Vulnerability:** Defense-in-depth for magic byte verification. The `aesDecrypt` function used a fail-fast loop to verify the fixed public "Salted__" header. While timing differences here do not reveal a secret, security scanners flag fail-fast loops in cryptographic contexts.
 **Learning:** Even for known public constants, using constant-time comparisons satisfies static analysis tools and acts as a defense-in-depth measure. Accumulating differences via bitwise XOR (`mismatch |= buf[i] ^ expected[i]`) avoids branching and executes in constant time.
 **Prevention:** Use constant-time comparison methods for all buffer equality checks in cryptographic functions for scanner compliance and defense-in-depth.
+## 2026-10-26 - [Guaranteed SSO Revocation in Swift]
+**Vulnerability:** Telcel SSO token revocation in `fetchTelcelUsage` can be bypassed by early exits or errors if cleanup is scattered. Using an unawaited background `Task` inside a synchronous `defer` block risks premature process suspension before revocation completes, causing session lockouts.
+**Learning:** In Swift async functions where synchronous `defer` cannot await async calls, capturing the outcome in a `Result` allows guaranteed, strictly awaited asynchronous cleanup before returning or throwing.
+**Prevention:** Use a `do ... catch` structure resolving to a `Result<T, Error>`, await the async cleanup routine (e.g., `revokeSSOToken`), and then `return try result.get()`.

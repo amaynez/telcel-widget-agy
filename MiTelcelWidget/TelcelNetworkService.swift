@@ -730,6 +730,7 @@ public actor TelcelNetworkService {
     // MARK: - Telcel Fetch Flow (SSO + B2F JWT + Wave B2F Home Flow)
     private func fetchTelcelUsage(phone: String, password: String, session: URLSession) async throws -> TelcelUsageEntry {
         var ssoToken: String?
+        let result: Result<TelcelUsageEntry, Error>
         do {
             // 1. Login SSO en wbl.telcel-id.com:8443/login
             var loginReq = URLRequest(url: URL(string: "https://wbl.telcel-id.com:8443/login")!)
@@ -812,16 +813,15 @@ public actor TelcelNetworkService {
                 throw URLError(.badServerResponse)
             }
             let entry = try Self.parseHomeFlowJSON(homeData)
-            if let ssoToken {
-                await Self.revokeSSOToken(ssoToken, session: session)
-            }
-            return entry
+            result = .success(entry)
         } catch {
-            if let ssoToken {
-                await Self.revokeSSOToken(ssoToken, session: session)
-            }
-            throw error
+            result = .failure(error)
         }
+
+        if let ssoToken {
+            await Self.revokeSSOToken(ssoToken, session: session)
+        }
+        return try result.get()
     }
 
     static func revokeSSOToken(_ token: String, session: URLSession) async {

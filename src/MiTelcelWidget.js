@@ -367,6 +367,7 @@ function parseTelcelResponse(payload) {
   const webSuffixesSet = new Set();
 
   const stack = [payload];
+  const suffixRegex = /^\d+-\d+-\d+$/;
 
   while (stack.length > 0) {
     const node = stack.pop();
@@ -376,8 +377,11 @@ function parseTelcelResponse(payload) {
       byId[node.id] = node.config;
       if (node.id.startsWith("tabs-plans-v2-plan-name-")) {
         const rest = node.id.slice(24);
-        if (rest.startsWith("web-")) webSuffixesSet.add(rest);
-        else suffixesSet.add(rest);
+        if (rest.startsWith("web-")) {
+          if (suffixRegex.test(rest.slice(4))) webSuffixesSet.add(rest);
+        } else if (suffixRegex.test(rest)) {
+          suffixesSet.add(rest);
+        }
       }
     }
 

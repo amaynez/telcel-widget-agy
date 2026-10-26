@@ -78,6 +78,7 @@ struct ContentView: View {
                                 #if os(iOS)
                                 .keyboardType(.numberPad)
                                 .textContentType(.username)
+                                .autocorrectionDisabled()
                                 #endif
                                 .textFieldStyle(.roundedBorder)
                             SecureField("Contraseña Mi Telcel", text: $password)
@@ -96,6 +97,7 @@ struct ContentView: View {
                                 #if os(iOS)
                                 .keyboardType(.numberPad)
                                 .textContentType(.telephoneNumber)
+                                .autocorrectionDisabled()
                                 #endif
                                 .textFieldStyle(.roundedBorder)
                             HStack(spacing: 6) {
@@ -113,6 +115,7 @@ struct ContentView: View {
                                 #if os(iOS)
                                 .keyboardType(.numberPad)
                                 .textContentType(.username)
+                                .autocorrectionDisabled()
                                 #endif
                                 .textFieldStyle(.roundedBorder)
                             SecureField("Contraseña Mi AT&T", text: $password)

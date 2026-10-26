@@ -20,3 +20,9 @@
 
 **Learning:** When building small, information-dense components like iOS Widgets, VoiceOver can read every individual `Text`, `Image`, or shape separately. This results in a disjointed, verbose, and confusing experience for screen reader users, who have to swipe through multiple elements just to understand the overall status of a single card.
 **Action:** Always use `.accessibilityElement(children: .ignore)` on container views (like `VStack` or `HStack`) that represent a unified concept when providing a custom `.accessibilityLabel` that summarizes the entire content logically, preventing VoiceOver from reading fragmented or redundant child views.
+
+## 2026-10-26 - Prevención de Autocorrección en Entradas Numéricas/Credenciales
+
+**Learning:** Even with contextual keyboards like `numberPad` and semantic AutoFill hints like `.textContentType(.username)` or `.telephoneNumber`, the OS may sometimes still attempt to autocorrect or suggest replacements for numeric inputs like phone numbers or account IDs. This can lead to silent errors where users submit incorrectly formatted or mangled numbers during login or configuration.
+
+**Action:** Always explicitly attach `.autocorrectionDisabled()` (in SwiftUI) or its equivalent (e.g., `autocorrect="off"` in HTML) to input fields meant for exact identifiers (like phone numbers, tokens, or usernames) to guarantee that user input remains precisely as typed, overriding any aggressive OS-level text replacement behaviors.

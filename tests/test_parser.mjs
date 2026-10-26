@@ -237,6 +237,7 @@ const telcelWebOnly = parseTelcelResponse({
   blocks: {
     children: [
       { id: "text-plan-name", config: { value: "Telcel Libre" } },
+      { id: "tabs-plans-v2-plan-name-header-info", config: { value: "Encabezado Info" } },
       { id: "tabs-plans-v2-plan-name-web-0-0-0", config: { value: "Datos Web" } },
       { id: "tabs-plans-v2-total-data-value-web-0-0-0", config: { value: "10" } },
       { id: "tabs-plans-v2-total-data-unit-web-0-0-0", config: { value: "GB" } },

@@ -27,8 +27,8 @@
 
 **Action:** Always explicitly attach `.autocorrectionDisabled()` (in SwiftUI) or its equivalent (e.g., `autocorrect="off"` in HTML) to input fields meant for exact identifiers (like phone numbers, tokens, or usernames) to help prevent autocorrection and reduce unwanted OS-level text replacement behaviors.
 
-## 2026-10-27 - Mejora de Agrupación Semántica para VoiceOver en Widgets SwiftUI
+## 2026-10-27 - Consistencia de AutoFill para Identificadores de Cuenta en SwiftUI
 
-**Learning:** While `.accessibilityElement(children: .ignore)` completely hides the individual child elements of a container, replacing it with `.accessibilityElement(children: .combine)` properly groups all the children elements together into a single focused accessibility element. Combining this with a custom `.accessibilityLabel` ensures the user is presented with a unified, understandable summary of the widget's overall status without forcing them to manually swipe through every little piece of text and graphical element in small UI components.
+**Learning:** When using phone numbers as login identifiers alongside password managers and iCloud Keychain, using `.textContentType(.telephoneNumber)` can prevent the OS credential manager from properly recognizing and associating the account identifier with saved credentials. Using `.textContentType(.username)` for phone-based account identifiers ensures consistent AutoFill behavior across all carrier login inputs.
 
-**Action:** Prefer `.accessibilityElement(children: .combine)` on container views (like `VStack` or `HStack`) when they conceptually represent a single unified component, and provide a clear, concise `.accessibilityLabel` to create a cohesive VoiceOver experience.
+**Action:** Use `.textContentType(.username)` instead of `.telephoneNumber` for phone input fields that serve as account login identifiers to ensure seamless Keychain AutoFill integration.

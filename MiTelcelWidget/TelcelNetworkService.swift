@@ -1625,7 +1625,7 @@ public struct MiTelcelWidgetCardContent: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
             }
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
             .accessibilityLabel(entry.accessibilitySummary)
         }
     }

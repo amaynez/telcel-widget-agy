@@ -26,3 +26,9 @@
 **Learning:** Even with contextual keyboards like `numberPad` and semantic AutoFill hints like `.textContentType(.username)` or `.telephoneNumber`, the OS may sometimes still attempt to autocorrect or suggest replacements for numeric inputs like phone numbers or account IDs. This can lead to silent errors where users submit incorrectly formatted or mangled numbers during login or configuration.
 
 **Action:** Always explicitly attach `.autocorrectionDisabled()` (in SwiftUI) or its equivalent (e.g., `autocorrect="off"` in HTML) to input fields meant for exact identifiers (like phone numbers, tokens, or usernames) to help prevent autocorrection and reduce unwanted OS-level text replacement behaviors.
+
+## 2026-10-27 - Mejora de Agrupación Semántica para VoiceOver en Widgets SwiftUI
+
+**Learning:** While `.accessibilityElement(children: .ignore)` completely hides the individual child elements of a container, replacing it with `.accessibilityElement(children: .combine)` properly groups all the children elements together into a single focused accessibility element. Combining this with a custom `.accessibilityLabel` ensures the user is presented with a unified, understandable summary of the widget's overall status without forcing them to manually swipe through every little piece of text and graphical element in small UI components.
+
+**Action:** Prefer `.accessibilityElement(children: .combine)` on container views (like `VStack` or `HStack`) when they conceptually represent a single unified component, and provide a clear, concise `.accessibilityLabel` to create a cohesive VoiceOver experience.

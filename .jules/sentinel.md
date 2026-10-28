@@ -11,3 +11,7 @@
 **Vulnerability:** Telcel SSO token revocation in `fetchTelcelUsage` can be bypassed by early exits or errors if cleanup is scattered. Using an unawaited background `Task` inside a synchronous `defer` block risks premature process suspension before revocation completes, causing session lockouts.
 **Learning:** In Swift async functions where synchronous `defer` cannot await async calls, capturing the outcome in a `Result` allows guaranteed, strictly awaited asynchronous cleanup before returning or throwing.
 **Prevention:** Use a `do ... catch` structure resolving to a `Result<T, Error>`, await the async cleanup routine (e.g., `revokeSSOToken`), and then `return try result.get()`.
+## 2026-10-28 - [SSO Token Revocation Consistency]
+**Vulnerability:** SSO tokens for Telcel were being revoked sequentially, leading to potential session lockouts if the execution was cancelled before the request finished.
+**Learning:** In Swift, `await` inside a sequential flow makes the code vulnerable to parent task cancellation. In JS, sequential execution after async calls can be interrupted if the function throws or exits early.
+**Prevention:** Always wrap critical cleanup logic (like token revocation) inside uncancelled tasks (e.g. `defer { Task { ... } }` in Swift) and guaranteed finally blocks (e.g. `finally { ... }` in JS) to ensure execution regardless of control flow.

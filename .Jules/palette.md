@@ -32,3 +32,8 @@
 **Learning:** When using phone numbers as login identifiers alongside password managers and iCloud Keychain, using `.textContentType(.telephoneNumber)` can prevent the OS credential manager from properly recognizing and associating the account identifier with saved credentials. Using `.textContentType(.username)` for phone-based account identifiers ensures consistent AutoFill behavior across all carrier login inputs.
 
 **Action:** Use `.textContentType(.username)` instead of `.telephoneNumber` for phone input fields that serve as account login identifiers to ensure seamless Keychain AutoFill integration.
+
+## 2026-10-28 - Unificación Semántica para VoiceOver y Consistencia de AutoFill
+
+**Learning:** The lack of contextual `.textContentType` and `.autocorrectionDisabled()` on token fields like Movistar's `p_id` causes friction since it misses AutoFill hints and OS text corrections. Similarly, complex loop views like data buckets are read disjointedly by VoiceOver unless combined.
+**Action:** Always complement token inputs with appropriate `.textContentType` and `.autocorrectionDisabled()`, and use `.accessibilityElement(children: .combine)` on repetitive bucket `VStack` elements to maintain a unified and frictionless a11y experience.

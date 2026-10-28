@@ -132,7 +132,6 @@ struct ContentView: View {
                                 .font(.headline)
                             SecureField("Token de sesión p_id (ec_auth)", text: $token)
                                 #if os(iOS)
-                                .textContentType(.password)
                                 .autocorrectionDisabled()
                                 #endif
                                 .textFieldStyle(.roundedBorder)

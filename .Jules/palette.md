@@ -33,7 +33,7 @@
 
 **Action:** Use `.textContentType(.username)` instead of `.telephoneNumber` for phone input fields that serve as account login identifiers to ensure seamless Keychain AutoFill integration.
 
-## 2026-10-28 - Unificación Semántica para VoiceOver y Consistencia de AutoFill
+## 2026-10-28 - Unificación Semántica para VoiceOver y Sanitización de Tokens
 
-**Learning:** The lack of contextual `.textContentType` and `.autocorrectionDisabled()` on token fields like Movistar's `p_id` causes friction since it misses AutoFill hints and OS text corrections. Similarly, complex loop views like data buckets are read disjointedly by VoiceOver unless combined.
-**Action:** Always complement token inputs with appropriate `.textContentType` and `.autocorrectionDisabled()`, and use `.accessibilityElement(children: .combine)` on repetitive bucket `VStack` elements to maintain a unified and frictionless a11y experience.
+**Learning:** Classifying transient session tokens (like Movistar's `p_id`) with `.textContentType(.password)` misleads OS Password AutoFill and Keychain managers into proposing or saving unrelated passwords. However, tokens still require `.autocorrectionDisabled()` to prevent unwanted keyboard substitutions. In addition, repetitive bucket cards in loop views are read disjointedly by VoiceOver unless combined into single semantic accessibility elements.
+**Action:** Keep session token fields free of `.textContentType(.password)` while preserving `.autocorrectionDisabled()`, and use `.accessibilityElement(children: .combine)` on repetitive bucket `VStack` elements for a cohesive VoiceOver readout.

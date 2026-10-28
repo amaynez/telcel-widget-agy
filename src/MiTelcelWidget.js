@@ -70,19 +70,23 @@ async function validateTelcelCredentials(phone, password) {
     );
     const ssoToken = loginJson?.token;
     if (!ssoToken) return false;
+
     try {
-      await requestTelcel(
-        "https://dev.smapps.mx:9000/sso/revoke",
-        "POST",
-        {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Accept": "application/json"
-        },
-        `token=${encodeURIComponent(ssoToken)}&token_type=revoke`,
-        false
-      );
-    } catch (_) {}
-    return true;
+      return true;
+    } finally {
+      try {
+        await requestTelcel(
+          "https://dev.smapps.mx:9000/sso/revoke",
+          "POST",
+          {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"
+          },
+          `token=${encodeURIComponent(ssoToken)}&token_type=revoke`,
+          false
+        );
+      } catch (_) {}
+    }
   } catch (err) {
     if (/\b(400|401|403|404)\b/.test(err?.message || "")) return false;
     throw err;

@@ -731,95 +731,105 @@ public actor TelcelNetworkService {
     private func fetchTelcelUsage(phone: String, password: String, session: URLSession) async throws -> TelcelUsageEntry {
         var ssoToken: String?
         let result: Result<TelcelUsageEntry, Error>
+        var revocationTask: Task<Void, Never>?
         do {
-            // 1. Login SSO en wbl.telcel-id.com:8443/login
-            var loginReq = URLRequest(url: URL(string: "https://wbl.telcel-id.com:8443/login")!)
-            loginReq.httpMethod = "POST"
-            loginReq.setValue("https://wbl.telcel-id.com:8443", forHTTPHeaderField: "Origin")
-            loginReq.setValue("https://wbl.telcel-id.com:8443/login?sitedomain=https://www.mitelcel.com&CCode=52&Type=MSISDN&Invocation=iFrame", forHTTPHeaderField: "Referer")
-            loginReq.setValue("application/x-www-form-urlencoded; charset=UTF-8", forHTTPHeaderField: "Content-Type")
-            loginReq.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
-            loginReq.setValue(ua, forHTTPHeaderField: "User-Agent")
-
-            let passClean = password.filter { !$0.isWhitespace }
-            let passB64 = Data(passClean.utf8).base64EncodedString()
-            var comps = URLComponents()
-            comps.queryItems = [
-                URLQueryItem(name: "username", value: phone),
-                URLQueryItem(name: "telcel-pass", value: password),
-                URLQueryItem(name: "sitedomain", value: "https://www.mitelcel.com"),
-                URLQueryItem(name: "CCode", value: "52"),
-                URLQueryItem(name: "Type", value: "MSISDN"),
-                URLQueryItem(name: "Invocation", value: "iFrame"),
-                URLQueryItem(name: "MSISDN", value: phone),
-                URLQueryItem(name: "Source", value: ""),
-                URLQueryItem(name: "pB64", value: passB64),
-                URLQueryItem(name: "url", value: "https://wbl.telcel-id.com:8443")
-            ]
-            loginReq.httpBody = comps.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
-
-            let (loginData, _) = try await session.data(for: loginReq)
-            guard let loginObj = try JSONSerialization.jsonObject(with: loginData) as? [String: Any],
-                  let token = loginObj["token"] as? String else {
-                throw URLError(.userAuthenticationRequired)
+            defer {
+                if let token = ssoToken {
+                    revocationTask = Task {
+                        await Self.revokeSSOToken(token, session: session)
+                    }
+                }
             }
-            ssoToken = token
+            do {
+                // 1. Login SSO en wbl.telcel-id.com:8443/login
+                var loginReq = URLRequest(url: URL(string: "https://wbl.telcel-id.com:8443/login")!)
+                loginReq.httpMethod = "POST"
+                loginReq.setValue("https://wbl.telcel-id.com:8443", forHTTPHeaderField: "Origin")
+                loginReq.setValue("https://wbl.telcel-id.com:8443/login?sitedomain=https://www.mitelcel.com&CCode=52&Type=MSISDN&Invocation=iFrame", forHTTPHeaderField: "Referer")
+                loginReq.setValue("application/x-www-form-urlencoded; charset=UTF-8", forHTTPHeaderField: "Content-Type")
+                loginReq.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
+                loginReq.setValue(ua, forHTTPHeaderField: "User-Agent")
 
-            // 2. Intercambio de Token SSO -> B2F JWT
-            var tokenComps = URLComponents(string: "https://mi-telcel.smapps.mx/security/1.0.0/v2/token")!
-            tokenComps.queryItems = [
-                URLQueryItem(name: "user", value: phone),
-                URLQueryItem(name: "token", value: token)
-            ]
-            var tokenReq = URLRequest(url: tokenComps.url!)
-            let dynamicBasic = await fetchDynamicMtlBasic()
-            tokenReq.setValue("Basic \(dynamicBasic)", forHTTPHeaderField: "Authorization")
-            tokenReq.setValue("token:mit|token:b2f", forHTTPHeaderField: "scope")
-            tokenReq.setValue("application/json", forHTTPHeaderField: "Accept")
-            tokenReq.setValue("0.14", forHTTPHeaderField: "App-Version")
-            tokenReq.setValue("38", forHTTPHeaderField: "Code-Version")
-            tokenReq.setValue("DSK", forHTTPHeaderField: "Device-Id")
-            tokenReq.setValue("1", forHTTPHeaderField: "tipoRequest")
-            tokenReq.setValue("WEB", forHTTPHeaderField: "Os")
-            tokenReq.setValue("13", forHTTPHeaderField: "Os-Version")
-            tokenReq.setValue("web-browser", forHTTPHeaderField: "X-Channel")
-            tokenReq.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+                let passClean = password.filter { !$0.isWhitespace }
+                let passB64 = Data(passClean.utf8).base64EncodedString()
+                var comps = URLComponents()
+                comps.queryItems = [
+                    URLQueryItem(name: "username", value: phone),
+                    URLQueryItem(name: "telcel-pass", value: password),
+                    URLQueryItem(name: "sitedomain", value: "https://www.mitelcel.com"),
+                    URLQueryItem(name: "CCode", value: "52"),
+                    URLQueryItem(name: "Type", value: "MSISDN"),
+                    URLQueryItem(name: "Invocation", value: "iFrame"),
+                    URLQueryItem(name: "MSISDN", value: phone),
+                    URLQueryItem(name: "Source", value: ""),
+                    URLQueryItem(name: "pB64", value: passB64),
+                    URLQueryItem(name: "url", value: "https://wbl.telcel-id.com:8443")
+                ]
+                loginReq.httpBody = comps.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
 
-            let (tokenData, _) = try await session.data(for: tokenReq)
-            guard let tokenRoot = try JSONSerialization.jsonObject(with: tokenData) as? [String: Any],
-                  let tokenResp = tokenRoot["tokenResponse"] as? [String: Any],
-                  let tokens = tokenResp["tokens"] as? [[String: Any]],
-                  let b2fToken = tokens.first(where: { ($0["id"] as? String) == "token:b2f" })?["access_token"] as? String else {
-                throw URLError(.cannotParseResponse)
+                let (loginData, _) = try await session.data(for: loginReq)
+                guard let loginObj = try JSONSerialization.jsonObject(with: loginData) as? [String: Any],
+                      let token = loginObj["token"] as? String else {
+                    throw URLError(.userAuthenticationRequired)
+                }
+                ssoToken = token
+
+                // 2. Intercambio de Token SSO -> B2F JWT
+                var tokenComps = URLComponents(string: "https://mi-telcel.smapps.mx/security/1.0.0/v2/token")!
+                tokenComps.queryItems = [
+                    URLQueryItem(name: "user", value: phone),
+                    URLQueryItem(name: "token", value: token)
+                ]
+                var tokenReq = URLRequest(url: tokenComps.url!)
+                let dynamicBasic = await fetchDynamicMtlBasic()
+                tokenReq.setValue("Basic \(dynamicBasic)", forHTTPHeaderField: "Authorization")
+                tokenReq.setValue("token:mit|token:b2f", forHTTPHeaderField: "scope")
+                tokenReq.setValue("application/json", forHTTPHeaderField: "Accept")
+                tokenReq.setValue("0.14", forHTTPHeaderField: "App-Version")
+                tokenReq.setValue("38", forHTTPHeaderField: "Code-Version")
+                tokenReq.setValue("DSK", forHTTPHeaderField: "Device-Id")
+                tokenReq.setValue("1", forHTTPHeaderField: "tipoRequest")
+                tokenReq.setValue("WEB", forHTTPHeaderField: "Os")
+                tokenReq.setValue("13", forHTTPHeaderField: "Os-Version")
+                tokenReq.setValue("web-browser", forHTTPHeaderField: "X-Channel")
+                tokenReq.setValue("ktor-client", forHTTPHeaderField: "User-Agent")
+
+                let (tokenData, _) = try await session.data(for: tokenReq)
+                guard let tokenRoot = try JSONSerialization.jsonObject(with: tokenData) as? [String: Any],
+                      let tokenResp = tokenRoot["tokenResponse"] as? [String: Any],
+                      let tokens = tokenResp["tokens"] as? [[String: Any]],
+                      let b2fToken = tokens.first(where: { ($0["id"] as? String) == "token:b2f" })?["access_token"] as? String else {
+                    throw URLError(.cannotParseResponse)
+                }
+
+                // 3. Consulta de Home Flow (Wave B2F: Plan Base + Datos Promocionales + Fecha de Corte)
+                var homeComps = URLComponents(string: "https://api.journeys.telcel.wavebybemobi.com/api/components/flow/home")!
+                homeComps.queryItems = [URLQueryItem(name: "externalCode", value: "52\(phone)")]
+                guard let homeURL = homeComps.url else { throw URLError(.badURL) }
+                var homeReq = URLRequest(url: homeURL)
+                homeReq.setValue("Bearer \(b2fToken)", forHTTPHeaderField: "Authorization")
+                homeReq.setValue("application/json", forHTTPHeaderField: "Accept")
+                homeReq.setValue("false", forHTTPHeaderField: "X-Is-iPad")
+                homeReq.setValue("WEB", forHTTPHeaderField: "x-wave-sdk")
+                homeReq.setValue("Desktop", forHTTPHeaderField: "x-wave-device")
+                homeReq.setValue("browser", forHTTPHeaderField: "x-wave-device-type")
+                homeReq.setValue("macos-web", forHTTPHeaderField: "x-wave-os")
+                homeReq.setValue("10.15.7", forHTTPHeaderField: "x-wave-os-version")
+                homeReq.setValue(ua, forHTTPHeaderField: "User-Agent")
+
+                let (homeData, homeResp) = try await session.data(for: homeReq)
+                guard (homeResp as? HTTPURLResponse)?.statusCode == 200 else {
+                    throw URLError(.badServerResponse)
+                }
+                let entry = try Self.parseHomeFlowJSON(homeData)
+                result = .success(entry)
+            } catch {
+                result = .failure(error)
             }
-
-            // 3. Consulta de Home Flow (Wave B2F: Plan Base + Datos Promocionales + Fecha de Corte)
-            var homeComps = URLComponents(string: "https://api.journeys.telcel.wavebybemobi.com/api/components/flow/home")!
-            homeComps.queryItems = [URLQueryItem(name: "externalCode", value: "52\(phone)")]
-            guard let homeURL = homeComps.url else { throw URLError(.badURL) }
-            var homeReq = URLRequest(url: homeURL)
-            homeReq.setValue("Bearer \(b2fToken)", forHTTPHeaderField: "Authorization")
-            homeReq.setValue("application/json", forHTTPHeaderField: "Accept")
-            homeReq.setValue("false", forHTTPHeaderField: "X-Is-iPad")
-            homeReq.setValue("WEB", forHTTPHeaderField: "x-wave-sdk")
-            homeReq.setValue("Desktop", forHTTPHeaderField: "x-wave-device")
-            homeReq.setValue("browser", forHTTPHeaderField: "x-wave-device-type")
-            homeReq.setValue("macos-web", forHTTPHeaderField: "x-wave-os")
-            homeReq.setValue("10.15.7", forHTTPHeaderField: "x-wave-os-version")
-            homeReq.setValue(ua, forHTTPHeaderField: "User-Agent")
-
-            let (homeData, homeResp) = try await session.data(for: homeReq)
-            guard (homeResp as? HTTPURLResponse)?.statusCode == 200 else {
-                throw URLError(.badServerResponse)
-            }
-            let entry = try Self.parseHomeFlowJSON(homeData)
-            result = .success(entry)
-        } catch {
-            result = .failure(error)
         }
 
-        if let ssoToken {
-            await Self.revokeSSOToken(ssoToken, session: session)
+        if let revocationTask {
+            await revocationTask.value
         }
         return try result.get()
     }

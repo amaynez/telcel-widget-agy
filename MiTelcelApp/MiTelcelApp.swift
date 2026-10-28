@@ -131,6 +131,9 @@ struct ContentView: View {
                             Text("Sesión Mi Movistar")
                                 .font(.headline)
                             SecureField("Token de sesión p_id (ec_auth)", text: $token)
+                                #if os(iOS)
+                                .autocorrectionDisabled()
+                                #endif
                                 .textFieldStyle(.roundedBorder)
                             Text("Debido a reCAPTCHA v3 en Movistar, pega tu token de sesión p_id activa.")
                                 .font(.caption)
@@ -159,6 +162,7 @@ struct ContentView: View {
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
+                                .accessibilityElement(children: .combine)
                                 .padding(12)
                                 .background(Color.white.opacity(0.08))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))

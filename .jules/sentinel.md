@@ -14,4 +14,4 @@
 ## 2026-10-28 - [SSO Token Revocation Consistency]
 **Vulnerability:** SSO tokens for Telcel were being revoked sequentially, leading to potential session lockouts if the execution was cancelled before the request finished.
 **Learning:** In Swift, `await` inside a sequential flow makes the code vulnerable to parent task cancellation. In JS, sequential execution after async calls can be interrupted if the function throws or exits early.
-**Prevention:** Always wrap critical cleanup logic (like token revocation) inside uncancelled tasks (e.g. `defer { Task { ... } }` in Swift) and guaranteed finally blocks (e.g. `finally { ... }` in JS) to ensure execution regardless of control flow.
+**Prevention:** Always wrap critical cleanup logic (like token revocation) inside uncancelled tasks that are retained and awaited before scope exit in Swift, and guaranteed finally blocks in JS to ensure execution regardless of control flow.

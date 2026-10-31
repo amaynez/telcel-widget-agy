@@ -431,15 +431,15 @@ public actor TelcelNetworkService {
         case .telcel:
             setKeychain("telcel_phone", cleanPhone)
             setKeychain("telcel_pass", password)
-            sharedDefaults.set(cleanPhone, forKey: "telcel_phone")
+            sharedDefaults.removeObject(forKey: "telcel_phone")
             sharedDefaults.removeObject(forKey: "telcel_pass")
         case .bait:
             setKeychain("bait_phone", cleanPhone)
-            sharedDefaults.set(cleanPhone, forKey: "bait_phone")
+            sharedDefaults.removeObject(forKey: "bait_phone")
         case .att:
             setKeychain("att_phone", cleanPhone)
             setKeychain("att_pass", password)
-            sharedDefaults.set(cleanPhone, forKey: "att_phone")
+            sharedDefaults.removeObject(forKey: "att_phone")
             sharedDefaults.removeObject(forKey: "att_pass")
         case .movistar:
             let cleanToken = token.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 
-if (!globalThis.Color) globalThis.Color = class { constructor(hex) { this.hex = hex; } };
+if (!globalThis.Color) globalThis.Color = class { constructor(hex, alpha = 1) { this.hex = hex; this.alpha = alpha; } };
 if (!globalThis.Size) globalThis.Size = class { constructor(w, h) { this.width = w; this.height = h; } };
 if (!globalThis.Rect) globalThis.Rect = class { constructor(x, y, w, h) { this.x = x; this.y = y; this.width = w; this.height = h; } };
 if (!globalThis.Point) globalThis.Point = class { constructor(x, y) { this.x = x; this.y = y; } };

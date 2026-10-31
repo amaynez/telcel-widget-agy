@@ -543,7 +543,7 @@ function parseTelcelResponse(payload) {
  */
 function createWidget(data) {
   const w = new ListWidget();
-  w.backgroundColor = COLORS.bg;
+  w.backgroundColor = new Color("#111111", 0.1);
   w.setPadding(11, 13, 10, 13);
   w.url = "https://www.mitelcel.com/mitelcel/login";
 
@@ -617,7 +617,7 @@ function renderHeader(w, brandName, cutoffText, daysLeft) {
   headerStack.addSpacer();
 
   const daysPill = headerStack.addStack();
-  daysPill.backgroundColor = COLORS.pillBg;
+  daysPill.backgroundColor = new Color("#242428", 0.3);
   daysPill.cornerRadius = 7;
   daysPill.setPadding(3, 7, 3, 7);
   daysPill.centerAlignContent();

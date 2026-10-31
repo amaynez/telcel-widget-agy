@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { createRequire } from "node:module";
 
-globalThis.Color = class { constructor(hex) { this.hex = hex; } };
+globalThis.Color = class { constructor(hex, alpha = 1) { this.hex = hex; this.alpha = alpha; } };
 globalThis.Size = class { constructor(w, h) { this.width = w; this.height = h; } };
 globalThis.Rect = class { constructor(x, y, w, h) { this.x = x; this.y = y; this.width = w; this.height = h; } };
 globalThis.Point = class { constructor(x, y) { this.x = x; this.y = y; } };
@@ -149,6 +149,9 @@ assert(wMid.texts.includes("● 608 MB/d"));
 assert(wMid.texts.some(t => t.includes("Plan+Promo")));
 assert.deepEqual(wMid.images[0].texts, ["5.47 GB", "libres de 15.0 GB"]);
 assert.equal(wMid.images[0].arcs, 3); // track + red spent + green left
+// Surface must stay under alpha 1 or iOS 18 tinted mode flattens it to white
+assert.equal(wMid.backgroundColor.hex, "#111111");
+assert.equal(wMid.backgroundColor.alpha, 0.9);
 
 const wZero = createWidget({ ...jsRes, consumedMB: 0, availableMB: 15000, daysLeft: 1 });
 assert(wZero.texts.includes("1 día"));

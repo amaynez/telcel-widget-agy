@@ -3,7 +3,7 @@ import { performance } from 'node:perf_hooks';
 import { createRequire } from 'node:module';
 
 // Polyfill minimal globals needed to import MiTelcelWidget in Node
-globalThis.Color = globalThis.Color || class { constructor() {} };
+globalThis.Color = globalThis.Color || class { constructor(hex, alpha = 1) { this.hex = hex; this.alpha = alpha; } };
 
 const require = createRequire(import.meta.url);
 const { parseTelcelResponse } = require("../src/MiTelcelWidget.js");

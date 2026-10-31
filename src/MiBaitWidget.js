@@ -34,7 +34,7 @@ const CONFIG = {
 };
 
 const COLORS = {
-  bg: new Color("#111111"),
+  bg: new Color("#111111", 0.9),
   pillBg: new Color("#242428"),
   brandGreen: new Color("#32D74B"),
   spentRed: new Color("#FF453A"),

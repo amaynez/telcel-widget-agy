@@ -1517,7 +1517,7 @@ public struct MiTelcelWidgetCardContent: View {
     private let warnYellow = Color(red: 1.00, green: 0.84, blue: 0.04)
     public let subtitleGray = Color(red: 0.60, green: 0.60, blue: 0.62)
     private let trackGray = Color(red: 0.17, green: 0.17, blue: 0.18)
-    private let pillBg = Color(red: 0.14, green: 0.14, blue: 0.16)
+    private let pillBg = Color(red: 0.14, green: 0.14, blue: 0.16).opacity(0.3)
 
     private var daysColor: Color {
         if entry.daysLeft <= 2 { return spentRed }

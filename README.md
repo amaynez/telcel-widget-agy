@@ -11,6 +11,7 @@ Widgets para iOS que muestran en tiempo real los **GB disponibles combinados (Pl
 ## Características
 
 - **Soporte multi-operador (Scriptable):** Scripts independientes y listos para usar en [`src/MiTelcelWidget.js`](src/MiTelcelWidget.js) (**Telcel**), [`src/MiBaitWidget.js`](src/MiBaitWidget.js) (**Bait**, consulta directa sin contraseña), [`src/MiMovistarWidget.js`](src/MiMovistarWidget.js) (**Movistar**, login interactivo con WebView por reCAPTCHA v3 y desencriptado AES-256-GCM) y [`src/MiATTWidget.js`](src/MiATTWidget.js) (**AT&T**, autenticación con cifrado CryptoJS AES-256-CBC).
+- **Compatibilidad con iOS 18+ (Modos Tintado y Transparente):** Fondo adaptativo con alfa `0.9` (`bg: new Color("#111111", 0.9)`) y cápsulas de estado translúcidas con alfa `0.3` (`pillBg: new Color("#242428", 0.3)`) para garantizar contraste y evitar que iOS 18 aplane los widgets oscuros a blanco en la Pantalla de Inicio tintada o transparente.
 - **Validación interactiva de credenciales:** Valida tus credenciales en vivo contra la API del operador antes de guardarlas en el Keychain; detecta errores de captura y problemas de conectividad con reintento guiado.
 - **Suma inteligente de bolsas:** Combina automáticamente los datos del Plan Base y los Datos Promocionales/Bonos vigentes en una sola pasada eficiente.
 - **Fecha de corte y vigencia:** Muestra los días restantes y la fecha de corte o vigencia exacta reportada por el operador (recalculada dinámicamente al leer desde caché).

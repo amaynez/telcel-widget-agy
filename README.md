@@ -6,6 +6,11 @@ Widgets para iOS que muestran en tiempo real los **GB disponibles combinados (Pl
   <img src="assets/widget_preview.png" alt="Mi Telcel Widget Preview" width="280">
 </p>
 
+### Modos de Visualización en iOS 17 / iOS 18+
+| Normal / Oscuro | Transparente | Tintado |
+| :---: | :---: | :---: |
+| <img src="assets/widget_normal.jpg" width="220" alt="Normal Mode"> | <img src="assets/widget_transparent.jpg" width="220" alt="Transparent Mode"> | <img src="assets/widget_tinted.jpg" width="220" alt="Tinted Mode"> |
+
 ---
 
 ## Características

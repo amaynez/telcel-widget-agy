@@ -97,7 +97,7 @@ public struct MiTelcelWidgetView: View {
                 .buttonStyle(.plain)
             }
         }
-        .containerBackground(Color(red: 0.07, green: 0.07, blue: 0.07).opacity(0.1), for: .widget)
+        .containerBackground(Color(red: 0.07, green: 0.07, blue: 0.07).opacity(0.9), for: .widget)
     }
 }
 

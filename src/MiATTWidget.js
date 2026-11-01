@@ -778,10 +778,14 @@ function renderHeader(w, brandName, cutoffText, daysLeft) {
   const brandTxt = titleCol.addText(brandName);
   brandTxt.font = Font.boldSystemFont(11);
   brandTxt.textColor = COLORS.white;
+  brandTxt.lineLimit = 1;
+  brandTxt.minimumScaleFactor = 0.75;
   if (cutoffText) {
     const cutoffTxtEl = titleCol.addText(cutoffText);
     cutoffTxtEl.font = Font.regularSystemFont(9.5);
     cutoffTxtEl.textColor = COLORS.subtitleGray;
+    cutoffTxtEl.lineLimit = 1;
+    cutoffTxtEl.minimumScaleFactor = 0.75;
   }
 
   headerStack.addSpacer();

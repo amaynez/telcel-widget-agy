@@ -32,12 +32,6 @@ struct TelcelWidgetConfigIntent: WidgetConfigurationIntent {
 
     @Parameter(title: "Operador", default: .auto)
     var carrier: CarrierIntentChoice
-
-    @Parameter(title: "Número (10 dígitos)", default: "")
-    var phone: String
-
-    @Parameter(title: "Contraseña / Token", default: "")
-    var passwordOrToken: String
 }
 
 struct RefreshTelcelUsageIntent: AppIntent {
@@ -71,10 +65,7 @@ struct MiTelcelTimelineProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: TelcelWidgetConfigIntent, in context: Context) async -> Timeline<TelcelUsageEntry> {
         let entry = await TelcelNetworkService.shared.fetchUsage(
-            carrier: configuration.carrier.mobileCarrier,
-            overridePhone: configuration.phone,
-            overridePassword: configuration.passwordOrToken,
-            overrideToken: configuration.passwordOrToken
+            carrier: configuration.carrier.mobileCarrier
         )
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: .now)!
         return Timeline(entries: [entry], policy: .after(nextUpdate))

@@ -1557,10 +1557,13 @@ public struct MiTelcelWidgetCardContent: View {
                         Text(entry.carrierDisplayName)
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(.white)
+                            .minimumScaleFactor(0.75)
+                            .lineLimit(1)
                         if !entry.cutoffDate.isEmpty {
                             Text(entry.totalMB > 0 ? "\(entry.cutoffPrefix)\(entry.shortCutoffDate)" : entry.cutoffDate)
                                 .font(.system(size: 9.5, weight: .regular))
                                 .foregroundStyle(subtitleGray)
+                                .minimumScaleFactor(0.75)
                                 .lineLimit(1)
                         }
                     }
@@ -1569,6 +1572,8 @@ public struct MiTelcelWidgetCardContent: View {
                         Text("\(entry.daysLeft) \(entry.daysLeft == 1 ? "día" : "días")")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(daysColor)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 3)
                             .background(pillBg, in: RoundedRectangle(cornerRadius: 7))
@@ -1605,6 +1610,7 @@ public struct MiTelcelWidgetCardContent: View {
                             Text(entry.availableMB > 0 ? String(format: "%.1f GB veloc. normal", entry.availableMB / entry.gbDivisor) : "Plan sin límite")
                                 .font(.system(size: 9.5, weight: .medium))
                                 .foregroundStyle(subtitleGray)
+                                .minimumScaleFactor(0.75)
                                 .lineLimit(1)
                         } else {
                             Text(String(format: "%.2f GB", entry.remainingGB))
@@ -1615,6 +1621,7 @@ public struct MiTelcelWidgetCardContent: View {
                             Text(String(format: "libres de %.1f GB", entry.totalGB))
                                 .font(.system(size: 9.5, weight: .medium))
                                 .foregroundStyle(subtitleGray)
+                                .minimumScaleFactor(0.75)
                                 .lineLimit(1)
                         }
                     }

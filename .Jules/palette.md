@@ -37,3 +37,9 @@
 
 **Learning:** Classifying transient session tokens (like Movistar's `p_id`) with `.textContentType(.password)` misleads OS Password AutoFill and Keychain managers into proposing or saving unrelated passwords. However, tokens still require `.autocorrectionDisabled()` to prevent unwanted keyboard substitutions. In addition, repetitive bucket cards in loop views are read disjointedly by VoiceOver unless combined into single semantic accessibility elements.
 **Action:** Keep session token fields free of `.textContentType(.password)` while preserving `.autocorrectionDisabled()`, and use `.accessibilityElement(children: .combine)` on repetitive bucket `VStack` elements for a cohesive VoiceOver readout.
+
+## 2026-10-29 - Prevención de Recorte de Texto en Widgets SwiftUI
+
+**Learning:** On small widget screens (like `systemSmall` 170x170 pt canvas), `Text` elements that display dynamic content (like carrier names, cutoff dates, or data balances) can easily overflow and clip or wrap unexpectedly.
+
+**Action:** Always apply `.lineLimit(1)` and `.minimumScaleFactor(...)` (e.g. `0.75` or `0.8`) uniformly to `Text` elements inside widget views to ensure text scales down gracefully instead of breaking the layout or getting clipped.

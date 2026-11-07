@@ -43,3 +43,8 @@
 **Learning:** On small widget screens (like `systemSmall` 170x170 pt canvas), `Text` elements that display dynamic content (like carrier names, cutoff dates, or data balances) can easily overflow and clip or wrap unexpectedly.
 
 **Action:** Always apply `.lineLimit(1)` and `.minimumScaleFactor(...)` (e.g. `0.75` or `0.8`) uniformly to `Text` elements inside widget views to ensure text scales down gracefully instead of breaking the layout or getting clipped.
+
+## 2026-10-30 - Agrupación Semántica para VoiceOver en Widgets SwiftUI (Corrección)
+
+**Learning:** While `.accessibilityElement(children: .ignore)` forces VoiceOver to read only the custom label, using `.accessibilityElement(children: .combine)` alongside a concise `.accessibilityLabel` is the preferred approach for multi-part visual elements in iOS widgets. This ensures the container is treated as a unified semantic concept by the screen reader without stripping underlying structural context that might be useful for certain accessibility features.
+**Action:** Always use `.accessibilityElement(children: .combine)` on container views (like `VStack` or `HStack`) that represent a unified concept, and provide a concise `.accessibilityLabel` to prevent disjointed screen reader output of multi-part visual elements.

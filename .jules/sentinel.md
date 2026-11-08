@@ -23,3 +23,8 @@
 **Vulnerability:** Defense-in-depth for magic byte verification in Swift. The `aesDecryptATT` function used string comparison (`String(data: magic, encoding: .ascii) == "Salted__"`) to verify the fixed public header. Security scanners flag non-constant-time comparisons in cryptographic contexts.
 **Learning:** Even for known public constants, using constant-time comparisons satisfies static analysis tools and acts as a defense-in-depth measure. Accumulating differences via bitwise XOR avoids branching and string conversion overhead.
 **Prevention:** Use a constant-time comparison loop (`mismatch |= magic[...] ^ expectedMagic[...]`) for all buffer equality checks in cryptographic functions for scanner compliance and defense-in-depth.
+
+## 2025-02-12 - Fix SSO Token Revocation Lockout Trap in Swift
+**Vulnerability:** A standard `Task` inside a `defer` block was used for SSO token revocation (`Task { await Self.revokeSSOToken(...) }`).
+**Learning:** In Swift structured concurrency, a standard `Task` inherits the cancellation state of its parent. If the network fetch operation is cancelled (e.g., widget timeout), the `defer` block executes but instantly propagates the cancellation to the revocation `Task`, causing the `URLSession` data task within `revokeSSOToken` to abort before firing. This leads to a persistent active session on the server and a potential lockout.
+**Prevention:** Use `Task.detached { ... }` when scheduling critical teardown or cleanup operations (like HTTP token revocation) in `defer` blocks to prevent the task from inheriting the parent's cancellation state.

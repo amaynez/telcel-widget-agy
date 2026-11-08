@@ -404,14 +404,17 @@ public actor TelcelNetworkService {
 
         switch carrier {
         case .telcel:
-            let rawPhone = getKeychain("telcel_phone") ?? defaults.string(forKey: "telcel_phone") ?? env["TELCEL_PHONE"] ?? ""
+            defaults.removeObject(forKey: "telcel_phone")
+            let rawPhone = getKeychain("telcel_phone") ?? env["TELCEL_PHONE"] ?? ""
             let pass = getKeychain("telcel_pass") ?? env["TELCEL_PASS"] ?? ""
             return CarrierCredentials(phone: normalizePhone(rawPhone), password: pass, token: "")
         case .bait:
-            let rawPhone = getKeychain("bait_phone") ?? defaults.string(forKey: "bait_phone") ?? env["BAIT_PHONE"] ?? ""
+            defaults.removeObject(forKey: "bait_phone")
+            let rawPhone = getKeychain("bait_phone") ?? env["BAIT_PHONE"] ?? ""
             return CarrierCredentials(phone: normalizePhone(rawPhone), password: "", token: "")
         case .att:
-            let rawPhone = getKeychain("att_phone") ?? defaults.string(forKey: "att_phone") ?? env["ATT_PHONE"] ?? ""
+            defaults.removeObject(forKey: "att_phone")
+            let rawPhone = getKeychain("att_phone") ?? env["ATT_PHONE"] ?? ""
             let pass = getKeychain("att_pass") ?? env["ATT_PASS"] ?? ""
             return CarrierCredentials(phone: normalizePhone(rawPhone), password: pass, token: "")
         case .movistar:
@@ -602,7 +605,12 @@ public actor TelcelNetworkService {
             throw URLError(.cannotDecodeContentData)
         }
         let magic = data.prefix(8)
-        guard String(data: magic, encoding: .ascii) == "Salted__" else {
+        let expectedMagic = Data("Salted__".utf8)
+        var mismatch: UInt8 = 0
+        for i in 0..<8 {
+            mismatch |= magic[magic.startIndex + i] ^ expectedMagic[expectedMagic.startIndex + i]
+        }
+        guard mismatch == 0 else {
             throw URLError(.cannotDecodeContentData)
         }
         let salt = data[8..<16]

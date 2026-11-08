@@ -18,7 +18,8 @@ Widgets para iOS que muestran en tiempo real los **GB disponibles combinados (Pl
 - **Soporte multi-operador (Scriptable):** Scripts independientes y listos para usar en [`src/MiTelcelWidget.js`](src/MiTelcelWidget.js) (**Telcel**), [`src/MiBaitWidget.js`](src/MiBaitWidget.js) (**Bait**, consulta directa sin contraseña), [`src/MiMovistarWidget.js`](src/MiMovistarWidget.js) (**Movistar**, login interactivo con WebView por reCAPTCHA v3 y desencriptado AES-256-GCM) y [`src/MiATTWidget.js`](src/MiATTWidget.js) (**AT&T**, autenticación con cifrado CryptoJS AES-256-CBC).
 - **Compatibilidad con iOS 18+ (Modos Tintado y Transparente):** Fondo adaptativo con alfa `0.9` (`bg: new Color("#111111", 0.9)`) y cápsulas de estado translúcidas con alfa `0.3` (`pillBg: new Color("#242428", 0.3)`) para garantizar contraste y evitar que iOS 18 aplane los widgets oscuros a blanco en la Pantalla de Inicio tintada o transparente.
 - **Validación interactiva de credenciales:** Valida tus credenciales en vivo contra la API del operador antes de guardarlas en el Keychain; detecta errores de captura y problemas de conectividad con reintento guiado.
-- **Suma inteligente de bolsas:** Combina automáticamente los datos del Plan Base y los Datos Promocionales/Bonos vigentes en una sola pasada eficiente.
+- **Suma inteligente de bolsas y cambios de plan:** Combina automáticamente los datos del Plan Base y los Datos Promocionales/Bonos vigentes en una sola pasada. Al cambiar de plan a mitad de ciclo, filtra bolsas promocionales obsoletas (`0 MB` disponibles) si existe otra promo activa, preservando siempre promociones agotadas legítimas y planes 100% consumidos.
+- **Resiliencia ante F5 Bot Defense (Fallback OIDC en Telcel):** Si WebLogin en el puerto 8443 es bloqueado por F5 Volterra (`volt-adc`), conmuta de forma automática e imperceptible al flujo OIDC (`www.mitelcel.com/oid-authorize-prod`) sin interrumpir la actualización ni depender de caché desactualizada.
 - **Fecha de corte y vigencia:** Muestra los días restantes y la fecha de corte o vigencia exacta reportada por el operador (recalculada dinámicamente al leer desde caché).
 - **Medidor semicircular y presupuesto diario:** Arco bicolor (rojo gastado vs. verde disponible), porcentaje usado (`%`) y cálculo de ritmo diario disponible (`MB/d` o `GB/d`).
 - **Almacenamiento seguro:** Las credenciales y tokens nunca se guardan en texto plano; se almacenan en el **Keychain de iOS** aislados por dispositivo.
@@ -198,7 +199,7 @@ Puedes probar las llamadas reales y verificar el formato devuelto por Mi Telcel 
 ## Seguridad y Privacidad
 
 - **Sin servidores intermediarios:** Las peticiones viajan directamente desde tu iPhone a los servidores oficiales de cada operador:
-  - **Telcel:** `wbl.telcel-id.com`, `mi-telcel.smapps.mx`, `api.journeys.telcel.wavebybemobi.com`.
+  - **Telcel:** `wbl.telcel-id.com`, `www.mitelcel.com/oid-authorize-prod`, `mi-telcel.smapps.mx`, `api.journeys.telcel.wavebybemobi.com`, `dev.smapps.mx:9000`.
   - **Bait:** `mibait.com` (consulta directa por número a través del proxy Ordenaris/Altán, sin contraseña).
   - **Movistar:** `mi.movistar.com.mx` (login interactivo en WebView y consulta de consumos cifrados con AES-256-GCM).
 - **Validación previa:** Credenciales y tokens se verifican directamente contra los servidores del operador antes de persistirse en el dispositivo.

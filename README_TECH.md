@@ -25,14 +25,15 @@ Multi-platform mobile data consumption widgets for Mexican carriers (**Telcel**,
 
 ## Global Invariants
 
-- **Mandatory Telcel SSO Revocation**: Every Telcel authentication flow across `./src`, `./MiTelcelWidget`, and `./.agents/skills/telcel-api-probe` MUST revoke the SSO token (`POST https://dev.smapps.mx:9000/sso/revoke`) inside a `finally` / `defer` / `trap` block to prevent concurrent session lockouts.
+- **Mandatory Telcel SSO Revocation**: Every Telcel authentication flow (standard WebLogin 8443 and OIDC fallback via `https://www.mitelcel.com/oid-authorize-prod`) across `./src`, `./MiTelcelWidget`, and `./.agents/skills/telcel-api-probe` MUST revoke the SSO token (`POST https://dev.smapps.mx:9000/sso/revoke`) inside a `finally` / `defer` / `trap` block to prevent concurrent session lockouts.
+- **Mid-Cycle Plan Change & Promo Filtering**: When upgrading or downgrading a plan mid-cycle, Telcel leaves deactivated promotional buckets from the previous plan with `0 MB` available. Both JS (`src/MiTelcelWidget.js`) and Swift (`MiTelcelWidget/TelcelNetworkService.swift`) identify base buckets via `/^(web-)?0-0-0$/` and filter out zero-available promo buckets ONLY when multiple promotional buckets exist and at least one has active data (`hasActivePromo`), preserving legitimately exhausted promotional buckets in normal billing cycles and 100% consumed plans.
 - **Pre-Persistence Credential Validation**: Carrier credentials and session tokens (`TELCEL_PHONE`/`TELCEL_PASS`, `BAIT_PHONE`, `MOVISTAR_PID`/`MOVISTAR_GUARD_KEY`, `ATT_PHONE`/`ATT_PASS`) are never persisted to Keychain until upstream authentication or consumption verification succeeds.
 - **Commercial vs. Binary Unit Parity**: Telcel uses `1 GB = 1000 MB` for commercial GB labels and `1 MB = 1024 KB` for fallback chart data across `./src`, `./MiTelcelWidget`, and `./android`. Bait, Movistar, and AT&T use binary `1 GB = 1024 MB` across all platforms.
 - **Offline Cache & Cutoff Recalculation**: Cached payloads for Bait, Movistar, and AT&T in `./src` and `./android` persist `cutoffISO` (`YYYY-MM-DD`) and recalculate `daysLeft` against the current date when loaded offline, whereas `./MiTelcelWidget` enforces cache freshness via `maxAge` expiration.
 
 ## Global Side Effects
 
-- **Direct Carrier Network I/O**: Performs HTTPS requests directly to official carrier endpoints (`wbl.telcel-id.com:8443`, `mi-telcel.smapps.mx`, `api.journeys.telcel.wavebybemobi.com`, `dev.smapps.mx:9000`, `mibait.com`, `mi.movistar.com.mx`, `miattweb.att.com.mx`).
+- **Direct Carrier Network I/O**: Performs HTTPS requests directly to official carrier endpoints (`wbl.telcel-id.com:8443`, `www.mitelcel.com/oid-authorize-prod`, `mi-telcel.smapps.mx`, `api.journeys.telcel.wavebybemobi.com`, `dev.smapps.mx:9000`, `mibait.com`, `mi.movistar.com.mx`, `miattweb.att.com.mx`).
 - **Device Keychain & App Group Storage**: Reads and mutates credentials in the iOS Keychain (Scriptable `Keychain` and native `kSecClassGenericPassword` under service `mx.mitelcel.widget` with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`) and non-secret metadata/caches in `UserDefaults(suiteName: "group.mx.mitelcel.widget")`, `FileManager.local().documentsDirectory()`, or `/sdcard/Download/*_widget.json`.
 
 ## System Verification
@@ -47,7 +48,8 @@ Multi-platform mobile data consumption widgets for Mexican carriers (**Telcel**,
 
 - **Soporte multi-operador (Scriptable):** Scripts autónomos en [`src/MiTelcelWidget.js`](src/MiTelcelWidget.js) (**Telcel**), [`src/MiBaitWidget.js`](src/MiBaitWidget.js) (**Bait**, consulta directa sin contraseña), [`src/MiMovistarWidget.js`](src/MiMovistarWidget.js) (**Movistar**, login interactivo con WebView por reCAPTCHA v3 y desencriptado AES-256-GCM) y [`src/MiATTWidget.js`](src/MiATTWidget.js) (**AT&T**, autenticación con cifrado CryptoJS AES-256-CBC).
 - **Validación interactiva de credenciales:** Valida tus credenciales en vivo contra la API del operador antes de guardarlas en el Keychain; detecta errores de captura y problemas de conectividad con reintento guiado.
-- **Agregación de bolsas de datos:** Suma los datos del Plan Base y los Datos Promocionales/Bonos vigentes descartando bolsas vacías o expiradas.
+- **Agregación inteligente y cambios de plan:** Suma los datos del Plan Base y los Datos Promocionales/Bonos vigentes. Al cambiar de plan mid-cycle, descarta bolsas promocionales obsoletas (`0 MB` disponibles) si existe otra promo activa, preservando siempre promociones agotadas legítimas y planes 100% consumidos.
+- **Resiliencia ante F5 Bot Defense (Fallback OIDC):** Conmuta automáticamente al flujo OIDC (`www.mitelcel.com/oid-authorize-prod`) si WebLogin 8443 es bloqueado por F5 Volterra (`volt-adc`).
 - **Fecha de corte y vigencia:** Muestra los días restantes y la fecha de corte o vigencia reportada por el operador (recalculada dinámicamente desde `cutoffISO` al leer desde caché en Scriptable y Android).
 - **Medidor semicircular y presupuesto diario:** Arco bicolor (rojo gastado vs. verde disponible), porcentaje usado (`%`) y cálculo de ritmo diario disponible (`MB/d` o `GB/d`).
 - **Almacenamiento seguro:** Las credenciales y tokens nunca se guardan en texto plano; se almacenan en el **Keychain de iOS** aislados por dispositivo.

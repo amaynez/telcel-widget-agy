@@ -46,7 +46,7 @@ En lugar de reescribir clientes desde cero o alterar cabeceras y estándares val
 
 1. **Mi Telcel ([`android/mitelcel_widget.mjs`](mitelcel_widget.mjs)):**
    - Importa `fetchTelcelData` (que ejecuta internamente `parseTelcelResponse`) de [`src/MiTelcelWidget.js`](../src/MiTelcelWidget.js).
-   - Flujo seguro de 4 pasos (**WebLogin SSO -> JWT -> Wave B2F -> Revocación SSO obligatoria** en bloque `finally`).
+   - Flujo seguro de 4 pasos (**WebLogin SSO con fallback automático a OIDC -> JWT -> Wave B2F con descarte de promos obsoletas mid-cycle -> Revocación SSO obligatoria** en bloque `finally`).
    - Usa la convención comercial de Telcel: `1 GB = 1000 MB`.
    - Genera `/sdcard/Download/mitelcel_widget.json` para **KWGT** e imprime el resumen formateado para **Termux:Widget**.
 

@@ -71,13 +71,40 @@
   ],
   "home_usage_blocks": [
     {
-      "id": "last-update-text",
+      "id": "text-plan-name",
+      "type": "text",
+      "configKeys": [
+        "align",
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "value"
+      ]
+    },
+    {
+      "id": "plan-details-name",
+      "type": "text",
+      "configKeys": [
+        "align",
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "lineHeight",
+        "value"
+      ]
+    },
+    {
+      "id": "plan-details-row-template-col-2-0-0",
       "type": "text",
       "configKeys": [
         "color",
         "fontFamily",
         "fontSize",
         "fontWeight",
+        "index",
+        "lineHeight",
         "value"
       ]
     },
@@ -293,6 +320,117 @@
     },
     {
       "id": "tabs-plans-v2-limited-cutoff-message-0-1-0",
+      "type": "rich-text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "segments"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-plan-name-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "align",
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-total-data-value-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-total-data-unit-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-used-data-value-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-used-data-unit-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-usage-chart-0-2-0",
+      "type": "chart",
+      "configKeys": [
+        "color",
+        "data",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "size",
+        "type"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-available-data-value-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-available-data-unit-0-2-0",
+      "type": "text",
+      "configKeys": [
+        "color",
+        "fontFamily",
+        "fontSize",
+        "fontWeight",
+        "index",
+        "value"
+      ]
+    },
+    {
+      "id": "tabs-plans-v2-limited-cutoff-message-0-2-0",
       "type": "rich-text",
       "configKeys": [
         "color",
@@ -567,6 +705,86 @@
     },
     {
       "path": "miPlanResponse.planInfo.planIncluded.5.description",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.title",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.availablePoints",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.detailsTextLink",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.title",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.0.text",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.0.description",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.1.text",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.1.description",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.2.text",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.2.description",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.3.text",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.detailList.3.description",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.benefitsTextLink.text",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.benefitsTextLink.redirectUri",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.bottomSheet.benefitsTextLink.redirectType",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.modal.body",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.modal.primaryButton",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.modal.secondaryButton",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.modal.title",
+      "type": "string"
+    },
+    {
+      "path": "miPlanResponse.circuloAzul.modal.type",
       "type": "string"
     }
   ]

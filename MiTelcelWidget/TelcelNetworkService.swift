@@ -776,8 +776,62 @@ public actor TelcelNetworkService {
                 loginReq.httpBody = comps.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
 
                 let (loginData, _) = try await session.data(for: loginReq)
-                guard let loginObj = try JSONSerialization.jsonObject(with: loginData) as? [String: Any],
-                      let token = loginObj["token"] as? String else {
+                var resolvedSSOToken = (try? JSONSerialization.jsonObject(with: loginData) as? [String: Any])?["token"] as? String
+
+                if resolvedSSOToken == nil {
+                    // Fallback OIDC cuando WebLogin 8443 devuelve cuerpo vacío por F5 Bot Defense
+                    let oidcBase = "https://www.mitelcel.com/oid-authorize-prod"
+                    let clientId = "31f419f6-5446-4e7e-a275-daf60f568698"
+                    let redirectUri = "https://mtl.smapps.mx:1333/sso/callback"
+                    var authComps = URLComponents(string: "\(oidcBase)/authorize")!
+                    authComps.queryItems = [
+                        URLQueryItem(name: "client_id", value: clientId),
+                        URLQueryItem(name: "response_type", value: "code"),
+                        URLQueryItem(name: "scope", value: "openid"),
+                        URLQueryItem(name: "redirect_uri", value: redirectUri),
+                        URLQueryItem(name: "acr_values", value: "1"),
+                        URLQueryItem(name: "state", value: "M1T3c3L"),
+                        URLQueryItem(name: "nonce", value: "MiTelcel7007")
+                    ]
+                    var authReq = URLRequest(url: authComps.url!)
+                    authReq.setValue("52\(phone)", forHTTPHeaderField: "USERNAME")
+                    authReq.setValue(password, forHTTPHeaderField: "PASSWORD")
+                    authReq.setValue("application/json", forHTTPHeaderField: "Accept")
+                    authReq.setValue("UTF-8", forHTTPHeaderField: "Accept-Charset")
+                    authReq.setValue(ua, forHTTPHeaderField: "User-Agent")
+
+                    let (authData, authResp) = try await session.data(for: authReq)
+                    let httpAuth = authResp as? HTTPURLResponse
+                    let locHeader = httpAuth?.value(forHTTPHeaderField: "x-oidc-redirect-location")
+                        ?? httpAuth?.value(forHTTPHeaderField: "location")
+                        ?? String(data: authData, encoding: .utf8)
+                        ?? ""
+                    if let codeRange = locHeader.range(of: #"(?:^|[?&])code=([^&\s"]+)"#, options: .regularExpression) {
+                        let matched = String(locHeader[codeRange])
+                        let code = matched.components(separatedBy: "code=").last ?? ""
+                        if !code.isEmpty {
+                            var tokReq = URLRequest(url: URL(string: "\(oidcBase)/token")!)
+                            tokReq.httpMethod = "POST"
+                            tokReq.setValue("application/json", forHTTPHeaderField: "Accept")
+                            tokReq.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+                            tokReq.setValue(ua, forHTTPHeaderField: "User-Agent")
+                            var tokComps = URLComponents()
+                            tokComps.queryItems = [
+                                URLQueryItem(name: "grant_type", value: "authorization_code"),
+                                URLQueryItem(name: "redirect_uri", value: redirectUri),
+                                URLQueryItem(name: "client_id", value: clientId),
+                                URLQueryItem(name: "code", value: code)
+                            ]
+                            tokReq.httpBody = tokComps.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
+                            let (tokData, _) = try await session.data(for: tokReq)
+                            if let tokObj = try? JSONSerialization.jsonObject(with: tokData) as? [String: Any] {
+                                resolvedSSOToken = (tokObj["access_token"] as? String) ?? (tokObj["token"] as? String)
+                            }
+                        }
+                    }
+                }
+
+                guard let token = resolvedSSOToken, !token.isEmpty else {
                     throw URLError(.userAuthenticationRequired)
                 }
                 ssoToken = token
@@ -1049,7 +1103,7 @@ public actor TelcelNetworkService {
         var consumedMB = 0.0
         var totalMB = 0.0
         var availableMB = 0.0
-        var buckets: [TelcelBucketUsage] = []
+        var rawBuckets: [TelcelBucketUsage] = []
         var resolvedDays: Int?
         let orderedSuffixes = suffixes.isEmpty ? ["0-0-0"] : suffixes
 
@@ -1070,21 +1124,29 @@ public actor TelcelNetworkService {
                 ?? max(0, bTotal - bUsed)
 
             if bTotal > 0 || bAvail > 0 {
-                consumedMB += bUsed
-                totalMB += bTotal
-                availableMB += bAvail
-                buckets.append(TelcelBucketUsage(
+                rawBuckets.append(TelcelBucketUsage(
                     id: sfx,
                     name: name,
                     consumedMB: bUsed,
                     totalMB: bTotal,
                     availableMB: bAvail
                 ))
-                if resolvedDays == nil {
-                    let segments = (byId["tabs-plans-v2-limited-cutoff-message-\(sfx)"]?["segments"] as? [[String: Any]]) ?? []
-                    let cutoffMsg = segments.compactMap { $0["text"] as? String }.joined()
-                    resolvedDays = cutoffMsg.split(whereSeparator: { !$0.isNumber }).first.flatMap { Int($0) }
-                }
+            }
+        }
+
+        let hasActiveData = rawBuckets.contains { $0.availableMB > 0 }
+        let buckets = hasActiveData
+            ? rawBuckets.enumerated().filter { $0.offset == 0 || $0.element.availableMB > 0 }.map(\.element)
+            : rawBuckets
+
+        for b in buckets {
+            consumedMB += b.consumedMB
+            totalMB += b.totalMB
+            availableMB += b.availableMB
+            if resolvedDays == nil {
+                let segments = (byId["tabs-plans-v2-limited-cutoff-message-\(b.id)"]?["segments"] as? [[String: Any]]) ?? []
+                let cutoffMsg = segments.compactMap { $0["text"] as? String }.joined()
+                resolvedDays = cutoffMsg.split(whereSeparator: { !$0.isNumber }).first.flatMap { Int($0) }
             }
         }
 

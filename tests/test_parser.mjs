@@ -289,6 +289,33 @@ assert.equal(telcelPlanChange.availableMB, 20900);
 assert.equal(telcelPlanChange.consumedMB, 9100);
 assert.deepEqual(telcelPlanChange.buckets.map(b => b.id), ["0-0-0", "0-1-0"]);
 
+// When a promo bucket is 100% exhausted during a normal cycle (base plan still has available data), keep promo bucket in totals
+const telcelExhaustedPromoFixture = {
+  blocks: {
+    children: [
+      { id: "tabs-plans-v2-plan-name-0-0-0", config: { value: "Datos de mi plan" } },
+      { id: "tabs-plans-v2-total-data-value-0-0-0", config: { value: "10" } },
+      { id: "tabs-plans-v2-total-data-unit-0-0-0", config: { value: "GB" } },
+      { id: "tabs-plans-v2-used-data-value-0-0-0", config: { value: "2" } },
+      { id: "tabs-plans-v2-used-data-unit-0-0-0", config: { value: "GB" } },
+      { id: "tabs-plans-v2-available-data-value-0-0-0", config: { value: "8" } },
+      { id: "tabs-plans-v2-available-data-unit-0-0-0", config: { value: "GB" } },
+      { id: "tabs-plans-v2-plan-name-0-1-0", config: { value: "PROMO 50%" } },
+      { id: "tabs-plans-v2-total-data-value-0-1-0", config: { value: "5" } },
+      { id: "tabs-plans-v2-total-data-unit-0-1-0", config: { value: "GB" } },
+      { id: "tabs-plans-v2-used-data-value-0-1-0", config: { value: "5" } },
+      { id: "tabs-plans-v2-used-data-unit-0-1-0", config: { value: "GB" } },
+      { id: "tabs-plans-v2-available-data-value-0-1-0", config: { value: "0" } },
+      { id: "tabs-plans-v2-available-data-unit-0-1-0", config: { value: "MB" } }
+    ]
+  }
+};
+const telcelExhaustedPromo = parseTelcelResponse(telcelExhaustedPromoFixture);
+assert.equal(telcelExhaustedPromo.totalMB, 15000);
+assert.equal(telcelExhaustedPromo.availableMB, 8000);
+assert.equal(telcelExhaustedPromo.consumedMB, 7000);
+assert.deepEqual(telcelExhaustedPromo.buckets.map(b => b.id), ["0-0-0", "0-1-0"]);
+
 // When all buckets are 100% exhausted (0 MB available across base + promo), preserve total plan limit
 const telcelAllExhausted = parseTelcelResponse({
   blocks: {
@@ -1311,11 +1338,15 @@ const testNetworkValidators = async () => {
 
     // OIDC fallback when WebLogin 8443 returns empty body (SyntaxError) due to F5 Bot Defense
     let oidcRevoked = false;
-    globalThis.fetch = async (url) => {
+    let authHeadersCaptured = null;
+    let tokenBodyCaptured = null;
+    let revokeBodyCaptured = null;
+    globalThis.fetch = async (url, opts = {}) => {
       if (url.includes("wbl.telcel-id.com:8443/login")) {
         return { ok: true, json: async () => JSON.parse("") };
       }
       if (url.includes("/oid-authorize-prod/authorize")) {
+        authHeadersCaptured = opts.headers;
         return {
           ok: true,
           headers: { get: (k) => k === "x-oidc-redirect-location" ? "https://mtl.smapps.mx:1333/sso/callback?code=oidc_code_123&state=M1T3c3L" : null },
@@ -1323,16 +1354,60 @@ const testNetworkValidators = async () => {
         };
       }
       if (url.includes("/oid-authorize-prod/token")) {
+        tokenBodyCaptured = opts.body;
         return { ok: true, json: async () => ({ access_token: "oidc_sso_tok" }) };
       }
       if (url.includes("/sso/revoke")) {
         oidcRevoked = true;
+        revokeBodyCaptured = opts.body;
         return { ok: true, text: async () => "ok" };
       }
       return { ok: false, status: 500 };
     };
     assert.equal(await validateTelcelCredentials("5512345678", "valid_pw"), true);
     assert.equal(oidcRevoked, true);
+    assert.equal(authHeadersCaptured?.["USERNAME"], "525512345678");
+    assert.equal(authHeadersCaptured?.["PASSWORD"], "valid_pw");
+    assert.match(tokenBodyCaptured, /code=oidc_code_123/);
+    assert.match(revokeBodyCaptured, /token=oidc_sso_tok/);
+
+    // OIDC fallback when WebLogin 8443 returns empty token {"token": ""}
+    let oidcEmptyTokenRevoked = false;
+    globalThis.fetch = async (url) => {
+      if (url.includes("wbl.telcel-id.com:8443/login")) {
+        return { ok: true, json: async () => ({ token: "" }) };
+      }
+      if (url.includes("/oid-authorize-prod/authorize")) {
+        return {
+          ok: true,
+          url: "https://mtl.smapps.mx:1333/sso/callback?code=oidc_code_empty_tok&state=M1T3c3L",
+          headers: { get: () => null },
+          text: async () => ""
+        };
+      }
+      if (url.includes("/oid-authorize-prod/token")) {
+        return { ok: true, json: async () => ({ access_token: "oidc_sso_tok_2" }) };
+      }
+      if (url.includes("/sso/revoke")) {
+        oidcEmptyTokenRevoked = true;
+        return { ok: true, text: async () => "ok" };
+      }
+      return { ok: false, status: 500 };
+    };
+    assert.equal(await validateTelcelCredentials("5512345678", "valid_pw"), true);
+    assert.equal(oidcEmptyTokenRevoked, true);
+
+    // Upstream 500 error on /authorize throws instead of silently returning false as wrong password
+    globalThis.fetch = async (url) => {
+      if (url.includes("wbl.telcel-id.com:8443/login")) {
+        return { ok: true, json: async () => JSON.parse("") };
+      }
+      if (url.includes("/oid-authorize-prod/authorize")) {
+        return { ok: false, status: 500, text: async () => "Internal Server Error" };
+      }
+      return { ok: false, status: 500 };
+    };
+    await assert.rejects(() => validateTelcelCredentials("5512345678", "valid_pw"), /código de estado 500/);
 
     globalThis.fetch = async () => ({ ok: false, status: 401, json: async () => ({ error: "unauthorized" }) });
     assert.equal(await validateTelcelCredentials("5512345678", "wrong_pw"), false);
@@ -1593,6 +1668,16 @@ assert(planChangeEntry.totalMB == 30000)
 assert(planChangeEntry.availableMB == 20900)
 assert(planChangeEntry.consumedMB == 9100)
 assert(planChangeEntry.buckets.map(\\.id) == ["0-0-0", "0-1-0"])
+
+// Verify Swift parser preserves exhausted promo bucket when base plan has available data
+let exhaustedPromoJson = #"""
+${JSON.stringify(telcelExhaustedPromoFixture)}
+"""#.data(using: .utf8)!
+let exhaustedPromoEntry = try TelcelNetworkService.parseHomeFlowJSON(exhaustedPromoJson)
+assert(exhaustedPromoEntry.totalMB == 15000)
+assert(exhaustedPromoEntry.availableMB == 8000)
+assert(exhaustedPromoEntry.consumedMB == 7000)
+assert(exhaustedPromoEntry.buckets.map(\\.id) == ["0-0-0", "0-1-0"])
 
 // Test Swift Multi-Operator: Bait, Movistar, AT&T
 let swiftBaitJson = #"""

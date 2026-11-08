@@ -147,7 +147,7 @@ El JSON devuelto contiene un árbol recursivo bajo `.blocks.children`. Cada nodo
 | **Bolsa 2 (`0-1-0`): KB Exactos Promo** | `tabs-plans-v2-usage-chart-0-1-0` | `.data[]` (`key: "used" \| "available"`) | `used: 0` KB, `available: 5242880` KB |
 
 > **Regla de Agregación (Plan + Promo y Cambio de Plan):**
-> Para obtener el total combinado en el widget, se buscan todos los sufijos `X-Y-Z` que coincidan con `^tabs-plans-v2-plan-name-(\d+-\d+-\d+)$` (por ejemplo `0-0-0` y `0-1-0`) y se suman sus valores en MB. Si el usuario cambia de plan a mitad de ciclo (más o menos GB), Telcel mantiene la bolsa promocional del plan anterior con `0 MB` disponibles junto al plan activo; por ello, cuando existe saldo disponible en alguna bolsa, se descartan las bolsas promocionales (`índice > 0`) con `availableMB <= 0`:
+> Para obtener el total combinado en el widget, se buscan todos los sufijos `X-Y-Z` que coincidan con `^tabs-plans-v2-plan-name-(\d+-\d+-\d+)$` (por ejemplo `0-0-0` y `0-1-0`) y se suman sus valores en MB. Si el usuario cambia de plan a mitad de ciclo (más o menos GB), Telcel mantiene la bolsa promocional del plan anterior con `0 MB` disponibles junto al plan activo; por ello, cuando existen múltiples bolsas promocionales y al menos una de ellas tiene saldo disponible, se descartan las bolsas promocionales adicionales con `availableMB <= 0` (preservando siempre bolsas promocionales agotadas legítimas cuando no hay otra promo activa o cuando todo el plan está al 100% consumido):
 > - $\text{Total MB} = 10,000 + 5,000 = 15,000\text{ MB}$ (`15.0 GB`)
 > - $\text{Consumido MB} = 9,500 + 0 = 9,500\text{ MB}$ (`9.50 GB`)
 > - $\text{Disponible MB} = 474 + 5,000 = 5,474\text{ MB}$ (`5.47 GB`)

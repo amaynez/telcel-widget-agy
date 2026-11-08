@@ -103,10 +103,10 @@ SSO_TOKEN=$(jq -r '.token // empty' "$ARTIFACTS_DIR/login_output.json" 2>/dev/nu
 LOGIN_ERR=$(jq -r '.error.description // .error // empty' "$ARTIFACTS_DIR/login_output.json" 2>/dev/null || true)
 
 if [[ -z "$SSO_TOKEN" || "$SSO_TOKEN" == "null" ]]; then
-  echo "⚠️ WebLogin 8443 sin token (F5 Bot Defense), autenticando vía OIDC (/sso/authorize -> /sso/token)..." | tee -a "$REPORT_FILE"
+  echo "⚠️ WebLogin 8443 sin token (F5 Bot Defense), autenticando vía OIDC (/oid-authorize-prod)..." | tee -a "$REPORT_FILE"
   OIDC_CLIENT_ID="31f419f6-5446-4e7e-a275-daf60f568698"
   OIDC_REDIRECT_URI="https://mtl.smapps.mx:1333/sso/callback"
-  AUTH_BODY=$(curl -s -G "https://dev.smapps.mx:9000/sso/authorize" \
+  AUTH_RESP=$(curl -s -i -G "https://www.mitelcel.com/oid-authorize-prod/authorize" \
     -H "USERNAME: 52$TELCEL_PHONE" \
     -H "PASSWORD: $TELCEL_PASS" \
     -H "Accept: application/json" \
@@ -118,10 +118,10 @@ if [[ -z "$SSO_TOKEN" || "$SSO_TOKEN" == "null" ]]; then
     --data-urlencode "acr_values=1" \
     --data-urlencode "state=M1T3c3L" \
     --data-urlencode "nonce=MiTelcel7007" || true)
-  AUTH_CODE=$(printf '%s' "$AUTH_BODY" | sed -nE 's/.*(^|[?&])code=([^&[:space:]"]+).*/\2/p' | head -n 1)
+  AUTH_CODE=$(printf '%s' "$AUTH_RESP" | sed -nE 's/.*(^|[?&])code=([^&[:space:]"]+).*/\2/p' | head -n 1)
   if [[ -n "$AUTH_CODE" ]]; then
     HTTP_LOGIN=$(curl -s -o "$ARTIFACTS_DIR/login_output.json" -w "%{http_code}" \
-      -X POST "https://dev.smapps.mx:9000/sso/token" \
+      -X POST "https://www.mitelcel.com/oid-authorize-prod/token" \
       -H "Accept: application/json" \
       -H "Content-Type: application/x-www-form-urlencoded" \
       --data-urlencode "grant_type=authorization_code" \

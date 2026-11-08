@@ -778,7 +778,7 @@ public actor TelcelNetworkService {
                 let (loginData, _) = try await session.data(for: loginReq)
                 var resolvedSSOToken = (try? JSONSerialization.jsonObject(with: loginData) as? [String: Any])?["token"] as? String
 
-                if resolvedSSOToken == nil {
+                if resolvedSSOToken == nil || resolvedSSOToken?.isEmpty == true {
                     // Fallback OIDC cuando WebLogin 8443 devuelve cuerpo vacío por F5 Bot Defense
                     let oidcBase = "https://www.mitelcel.com/oid-authorize-prod"
                     let clientId = "31f419f6-5446-4e7e-a275-daf60f568698"
@@ -804,6 +804,7 @@ public actor TelcelNetworkService {
                     let httpAuth = authResp as? HTTPURLResponse
                     let locHeader = httpAuth?.value(forHTTPHeaderField: "x-oidc-redirect-location")
                         ?? httpAuth?.value(forHTTPHeaderField: "location")
+                        ?? httpAuth?.url?.absoluteString
                         ?? String(data: authData, encoding: .utf8)
                         ?? ""
                     if let codeRange = locHeader.range(of: #"(?:^|[?&])code=([^&\s"]+)"#, options: .regularExpression) {
@@ -1134,10 +1135,9 @@ public actor TelcelNetworkService {
             }
         }
 
-        let hasActiveData = rawBuckets.contains { $0.availableMB > 0 }
-        let buckets = hasActiveData
-            ? rawBuckets.enumerated().filter { $0.offset == 0 || $0.element.availableMB > 0 }.map(\.element)
-            : rawBuckets
+        let isBase: (TelcelBucketUsage) -> Bool = { $0.id == "0-0-0" || $0.id == "web-0-0-0" }
+        let hasActivePromo = rawBuckets.contains { !isBase($0) && $0.availableMB > 0 }
+        let buckets = rawBuckets.filter { isBase($0) || $0.availableMB > 0 || !hasActivePromo }
 
         for b in buckets {
             consumedMB += b.consumedMB

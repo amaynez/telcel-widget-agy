@@ -38,6 +38,15 @@ const COLORS = {
   alertRed: new Color("#FF453A")
 };
 
+/**
+ * Autentica credenciales en Mi Telcel vía WebLogin 8443 con fallback automático
+ * a OIDC (/oid-authorize-prod) cuando F5 Bot Defense rechaza la solicitud.
+ *
+ * @param {string} phone - Número Telcel a 10 dígitos.
+ * @param {string} password - Contraseña de Mi Telcel.
+ * @param {string} ua - Cabecera User-Agent a enviar.
+ * @returns {Promise<string|null>} Token SSO emitido o null si las credenciales son inválidas.
+ */
 async function loginTelcelSSO(phone, password, ua) {
   const passClean = String(password || "").replace(/\s+/g, "");
   const pB64 = typeof Data !== "undefined"
@@ -92,18 +101,30 @@ async function loginTelcelSSO(phone, password, ua) {
     const req = new Request(authUrl);
     req.method = "GET";
     req.headers = authHeaders;
+    if (typeof req.onRedirect === "function" || "onRedirect" in req) {
+      req.onRedirect = (redirReq) => {
+        if (redirReq?.url) loc = redirReq.url;
+        return null;
+      };
+    }
     authBody = await req.loadString();
+    if (req.response && (req.response.statusCode < 200 || req.response.statusCode >= 400)) {
+      throw new Error(`Error en la solicitud: código de estado ${req.response.statusCode}. Por favor, inténtalo más tarde.`);
+    }
     const hdrs = req.response?.headers || {};
     for (const k of Object.keys(hdrs)) {
       if (/^(x-oidc-redirect-location|location)$/i.test(k)) {
-        loc = hdrs[k];
+        loc = loc || hdrs[k];
         break;
       }
     }
   } else {
-    const res = await fetch(authUrl, { method: "GET", headers: authHeaders });
+    const res = await fetch(authUrl, { method: "GET", headers: authHeaders, redirect: "manual" });
+    if (!res.ok && res.status !== 302 && res.status !== 0) {
+      throw new Error(`Error en la solicitud: código de estado ${res.status}. Por favor, inténtalo más tarde.`);
+    }
     authBody = await res.text();
-    loc = res.headers?.get?.("x-oidc-redirect-location") || res.headers?.get?.("location") || "";
+    loc = res.headers?.get?.("x-oidc-redirect-location") || res.headers?.get?.("location") || res.url || "";
   }
   const code = ((loc || authBody).match(/(?:^|[?&])code=([^&\s"]+)/) || [])[1];
   if (!code) {
@@ -530,9 +551,10 @@ function parseTelcelResponse(payload) {
       rawBuckets.push(b);
     }
   }
-  const hasActiveData = rawBuckets.some(b => b.availableMB > 0);
-  // Al cambiar de plan (más o menos GB), Telcel deja la bolsa promo anterior en 0 MB disponibles junto al plan activo.
-  const buckets = hasActiveData ? rawBuckets.filter((b, i) => i === 0 || b.availableMB > 0) : rawBuckets;
+  const isBase = b => /^(web-)?0-0-0$/.test(b.id);
+  const hasActivePromo = rawBuckets.some(b => !isBase(b) && b.availableMB > 0);
+  // Al cambiar de plan mid-cycle, Telcel deja la promo anterior en 0 MB disp. Solo descartar si hay otra promo activa.
+  const buckets = rawBuckets.filter(b => isBase(b) || b.availableMB > 0 || !hasActivePromo);
   for (let i = 0; i < buckets.length; i++) {
     const b = buckets[i];
     consumedMB += b.consumedMB;

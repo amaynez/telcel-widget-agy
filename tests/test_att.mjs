@@ -329,7 +329,7 @@ try {
       assert(opts.headers.Authorization.startsWith("Bearer "));
       assert(opts.headers.Cookie.includes("session_sid_123"));
       assert(opts.headers.Cookie.includes("BIGipServer=pool_123"));
-      const encResp = await aesEncrypt(JSON.stringify(attPostpaidFixture), sessionKey);
+      const encResp = await aesEncrypt(JSON.stringify(attPostpaidFixture).replaceAll("2026-10-28", "2099-10-28"), sessionKey);
       return {
         ok: true,
         status: 200,

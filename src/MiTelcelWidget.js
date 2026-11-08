@@ -38,14 +38,23 @@ const COLORS = {
   alertRed: new Color("#FF453A")
 };
 
-async function validateTelcelCredentials(phone, password) {
+/**
+ * Autentica credenciales en Mi Telcel vía WebLogin 8443 con fallback automático
+ * a OIDC (/oid-authorize-prod) cuando F5 Bot Defense rechaza la solicitud.
+ *
+ * @param {string} phone - Número Telcel a 10 dígitos.
+ * @param {string} password - Contraseña de Mi Telcel.
+ * @param {string} ua - Cabecera User-Agent a enviar.
+ * @returns {Promise<string|null>} Token SSO emitido o null si las credenciales son inválidas.
+ */
+async function loginTelcelSSO(phone, password, ua) {
+  const passClean = String(password || "").replace(/\s+/g, "");
+  const pB64 = typeof Data !== "undefined"
+    ? Data.fromString(passClean).toBase64String()
+    : Buffer.from(passClean, "utf8").toString("base64");
+  let loginJson = null;
   try {
-    const passClean = String(password || "").replace(/\s+/g, "");
-    const pB64 = typeof Data !== "undefined"
-      ? Data.fromString(passClean).toBase64String()
-      : Buffer.from(passClean, "utf8").toString("base64");
-    const ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
-    const loginJson = await requestTelcel(
+    loginJson = await requestTelcel(
       "https://wbl.telcel-id.com:8443/login",
       "POST",
       {
@@ -68,7 +77,76 @@ async function validateTelcelCredentials(phone, password) {
         "url=https://wbl.telcel-id.com:8443"
       ].join("&")
     );
-    const ssoToken = loginJson?.token;
+  } catch (err) {
+    if (!(err instanceof SyntaxError)) throw err;
+  }
+  if (loginJson?.token) return loginJson.token;
+  if (loginJson?.error) return null;
+
+  // Fallback OIDC cuando WebLogin 8443 devuelve cuerpo vacío por F5 Bot Defense
+  const oidcBase = "https://www.mitelcel.com/oid-authorize-prod";
+  const clientId = "31f419f6-5446-4e7e-a275-daf60f568698";
+  const redirectUri = "https://mtl.smapps.mx:1333/sso/callback";
+  const authUrl = `${oidcBase}/authorize?client_id=${clientId}&response_type=code&scope=openid&redirect_uri=${encodeURIComponent(redirectUri)}&acr_values=1&state=M1T3c3L&nonce=MiTelcel7007`;
+  const authHeaders = {
+    "USERNAME": `52${phone}`,
+    "PASSWORD": String(password || ""),
+    "Accept": "application/json",
+    "Accept-Charset": "UTF-8",
+    "User-Agent": ua
+  };
+  let loc = "";
+  let authBody = "";
+  if (typeof Request !== "undefined" && typeof Request.prototype?.loadString === "function") {
+    const req = new Request(authUrl);
+    req.method = "GET";
+    req.headers = authHeaders;
+    if (typeof req.onRedirect === "function" || "onRedirect" in req) {
+      req.onRedirect = (redirReq) => {
+        if (redirReq?.url) loc = redirReq.url;
+        return null;
+      };
+    }
+    authBody = await req.loadString();
+    if (req.response && (req.response.statusCode < 200 || req.response.statusCode >= 400)) {
+      throw new Error(`Error en la solicitud: código de estado ${req.response.statusCode}. Por favor, inténtalo más tarde.`);
+    }
+    const hdrs = req.response?.headers || {};
+    for (const k of Object.keys(hdrs)) {
+      if (/^(x-oidc-redirect-location|location)$/i.test(k)) {
+        loc = loc || hdrs[k];
+        break;
+      }
+    }
+  } else {
+    const res = await fetch(authUrl, { method: "GET", headers: authHeaders, redirect: "manual" });
+    if (!res.ok && res.status !== 302 && res.status !== 0) {
+      throw new Error(`Error en la solicitud: código de estado ${res.status}. Por favor, inténtalo más tarde.`);
+    }
+    authBody = await res.text();
+    loc = res.headers?.get?.("x-oidc-redirect-location") || res.headers?.get?.("location") || res.url || "";
+  }
+  const code = ((loc || authBody).match(/(?:^|[?&])code=([^&\s"]+)/) || [])[1];
+  if (!code) {
+    throw new Error("Error en la solicitud: código de estado 401. Por favor, verifica tus credenciales.");
+  }
+  const tokJson = await requestTelcel(
+    `${oidcBase}/token`,
+    "POST",
+    {
+      "Accept": "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": ua
+    },
+    `grant_type=authorization_code&redirect_uri=${encodeURIComponent(redirectUri)}&client_id=${clientId}&code=${encodeURIComponent(code)}`
+  );
+  return tokJson?.access_token || tokJson?.token || null;
+}
+
+async function validateTelcelCredentials(phone, password) {
+  try {
+    const ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+    const ssoToken = await loginTelcelSSO(phone, password, ua);
     if (!ssoToken) return false;
 
     try {
@@ -265,38 +343,11 @@ async function fetchTelcelData(creds) {
   }
   const ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
   const mtlBasic = await fetchDynamicMtlBasic();
-  const passClean = password.replace(/\s+/g, "");
-  const pB64 = typeof Data !== "undefined"
-    ? Data.fromString(passClean).toBase64String()
-    : Buffer.from(passClean, "utf8").toString("base64");
 
-  // 1. Login SSO (wbl.telcel-id.com:8443/login -> redirige 302 a /Auth y devuelve { token })
-  const loginJson = await requestTelcel(
-    "https://wbl.telcel-id.com:8443/login",
-    "POST",
-    {
-      "Origin": "https://wbl.telcel-id.com:8443",
-      "Referer": "https://wbl.telcel-id.com:8443/login?sitedomain=https://www.mitelcel.com&CCode=52&Type=MSISDN&Invocation=iFrame",
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest",
-      "User-Agent": ua
-    },
-    [
-      `username=${encodeURIComponent(phone)}`,
-      `telcel-pass=${encodeURIComponent(password)}`,
-      "sitedomain=https://www.mitelcel.com",
-      "CCode=52",
-      "Type=MSISDN",
-      "Invocation=iFrame",
-      `MSISDN=${encodeURIComponent(phone)}`,
-      "Source=",
-      `pB64=${encodeURIComponent(pB64)}`,
-      "url=https://wbl.telcel-id.com:8443"
-    ].join("&")
-  );
-  const ssoToken = loginJson?.token;
+  // 1. Login SSO (WebLogin 8443 con fallback automático a OIDC /oid-authorize-prod)
+  const ssoToken = await loginTelcelSSO(phone, password, ua);
   if (!ssoToken) {
-    throw new Error(loginJson?.error?.description || "No se obtuvo token SSO");
+    throw new Error("No se obtuvo token SSO");
   }
 
   try {
@@ -491,19 +542,26 @@ function parseTelcelResponse(payload) {
   let totalMB = 0;
   let availableMB = 0;
   let daysLeft = null;
-  const buckets = [];
+  const rawBuckets = [];
 
   const bucketKeys = suffixes.length ? suffixes : ["0-0-0"];
   for (let i = 0; i < bucketKeys.length; i++) {
     const b = parseBucket(bucketKeys[i]);
     if (b.totalMB > 0 || b.availableMB > 0) {
-      buckets.push(b);
-      consumedMB += b.consumedMB;
-      totalMB += b.totalMB;
-      availableMB += b.availableMB;
-      if (daysLeft === null && b.daysLeft !== null) {
-        daysLeft = b.daysLeft;
-      }
+      rawBuckets.push(b);
+    }
+  }
+  const isBase = b => /^(web-)?0-0-0$/.test(b.id);
+  const hasActivePromo = rawBuckets.some(b => !isBase(b) && b.availableMB > 0);
+  // Al cambiar de plan mid-cycle, Telcel deja la promo anterior en 0 MB disp. Solo descartar si hay otra promo activa.
+  const buckets = rawBuckets.filter(b => isBase(b) || b.availableMB > 0 || !hasActivePromo);
+  for (let i = 0; i < buckets.length; i++) {
+    const b = buckets[i];
+    consumedMB += b.consumedMB;
+    totalMB += b.totalMB;
+    availableMB += b.availableMB;
+    if (daysLeft === null && b.daysLeft !== null) {
+      daysLeft = b.daysLeft;
     }
   }
   if (!buckets.length) {

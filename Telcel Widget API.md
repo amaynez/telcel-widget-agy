@@ -65,6 +65,9 @@ Autentica el número a 10 dígitos y la contraseña. El servidor responde con un
     "loginname": "525512345678"
   }
   ```
+- **Fallback OIDC (`www.mitelcel.com/oid-authorize-prod`) cuando F5 Bot Defense devuelve cuerpo vacío en `8443`:**
+  1. `GET https://www.mitelcel.com/oid-authorize-prod/authorize?client_id=31f419f6-5446-4e7e-a275-daf60f568698&response_type=code&scope=openid&redirect_uri=https%3A%2F%2Fmtl.smapps.mx%3A1333%2Fsso%2Fcallback&acr_values=1&state=M1T3c3L&nonce=MiTelcel7007` con headers `USERNAME: 52<10_digitos>` y `PASSWORD: <password>` $\rightarrow$ extrae `code` del header `x-oidc-redirect-location` (o `location`).
+  2. `POST https://www.mitelcel.com/oid-authorize-prod/token` (`grant_type=authorization_code&redirect_uri=...&client_id=...&code=...`) $\rightarrow$ `{ "access_token": "<sso_token>" }`.
 
 ---
 
@@ -143,8 +146,8 @@ El JSON devuelto contiene un árbol recursivo bajo `.blocks.children`. Cada nodo
 | **Bolsa 2 (`0-1-0`): Disponible Promo** | `tabs-plans-v2-available-data-value-0-1-0` + `...-unit-0-1-0` | `.value` | `"5"` + `"GB"` (`5000 MB`) |
 | **Bolsa 2 (`0-1-0`): KB Exactos Promo** | `tabs-plans-v2-usage-chart-0-1-0` | `.data[]` (`key: "used" \| "available"`) | `used: 0` KB, `available: 5242880` KB |
 
-> **Regla de Agregación (Plan + Promo):**
-> Para obtener el total combinado en el widget, se buscan todos los sufijos `X-Y-Z` que coincidan con `^tabs-plans-v2-plan-name-(\d+-\d+-\d+)$` (por ejemplo `0-0-0` y `0-1-0`) y se suman sus valores en MB:
+> **Regla de Agregación (Plan + Promo y Cambio de Plan):**
+> Para obtener el total combinado en el widget, se buscan todos los sufijos `X-Y-Z` que coincidan con `^tabs-plans-v2-plan-name-(\d+-\d+-\d+)$` (por ejemplo `0-0-0` y `0-1-0`) y se suman sus valores en MB. Si el usuario cambia de plan a mitad de ciclo (más o menos GB), Telcel mantiene la bolsa promocional del plan anterior con `0 MB` disponibles junto al plan activo; por ello, cuando existen múltiples bolsas promocionales y al menos una de ellas tiene saldo disponible, se descartan las bolsas promocionales adicionales con `availableMB <= 0` (preservando siempre bolsas promocionales agotadas legítimas cuando no hay otra promo activa o cuando todo el plan está al 100% consumido):
 > - $\text{Total MB} = 10,000 + 5,000 = 15,000\text{ MB}$ (`15.0 GB`)
 > - $\text{Consumido MB} = 9,500 + 0 = 9,500\text{ MB}$ (`9.50 GB`)
 > - $\text{Disponible MB} = 474 + 5,000 = 5,474\text{ MB}$ (`5.47 GB`)

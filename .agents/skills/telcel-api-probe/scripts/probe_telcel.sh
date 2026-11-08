@@ -102,6 +102,37 @@ echo "SSO Login HTTP Status: $HTTP_LOGIN" | tee -a "$REPORT_FILE"
 SSO_TOKEN=$(jq -r '.token // empty' "$ARTIFACTS_DIR/login_output.json" 2>/dev/null || true)
 LOGIN_ERR=$(jq -r '.error.description // .error // empty' "$ARTIFACTS_DIR/login_output.json" 2>/dev/null || true)
 
+if [[ -z "$SSO_TOKEN" || "$SSO_TOKEN" == "null" ]]; then
+  echo "⚠️ WebLogin 8443 sin token (F5 Bot Defense), autenticando vía OIDC (/oid-authorize-prod)..." | tee -a "$REPORT_FILE"
+  OIDC_CLIENT_ID="31f419f6-5446-4e7e-a275-daf60f568698"
+  OIDC_REDIRECT_URI="https://mtl.smapps.mx:1333/sso/callback"
+  AUTH_RESP=$(curl -s -i -G "https://www.mitelcel.com/oid-authorize-prod/authorize" \
+    -H "USERNAME: 52$TELCEL_PHONE" \
+    -H "PASSWORD: $TELCEL_PASS" \
+    -H "Accept: application/json" \
+    -H "Accept-Charset: UTF-8" \
+    --data-urlencode "client_id=$OIDC_CLIENT_ID" \
+    --data-urlencode "response_type=code" \
+    --data-urlencode "scope=openid" \
+    --data-urlencode "redirect_uri=$OIDC_REDIRECT_URI" \
+    --data-urlencode "acr_values=1" \
+    --data-urlencode "state=M1T3c3L" \
+    --data-urlencode "nonce=MiTelcel7007" || true)
+  AUTH_CODE=$(printf '%s' "$AUTH_RESP" | sed -nE 's/.*(^|[?&])code=([^&[:space:]"]+).*/\2/p' | head -n 1)
+  if [[ -n "$AUTH_CODE" ]]; then
+    HTTP_LOGIN=$(curl -s -o "$ARTIFACTS_DIR/login_output.json" -w "%{http_code}" \
+      -X POST "https://www.mitelcel.com/oid-authorize-prod/token" \
+      -H "Accept: application/json" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      --data-urlencode "grant_type=authorization_code" \
+      --data-urlencode "redirect_uri=$OIDC_REDIRECT_URI" \
+      --data-urlencode "client_id=$OIDC_CLIENT_ID" \
+      --data-urlencode "code=$AUTH_CODE")
+    SSO_TOKEN=$(jq -r '.access_token // .token // empty' "$ARTIFACTS_DIR/login_output.json" 2>/dev/null || true)
+    LOGIN_ERR=$(jq -r '.error_description // .error // empty' "$ARTIFACTS_DIR/login_output.json" 2>/dev/null || true)
+  fi
+fi
+
 if [[ -n "$SSO_TOKEN" && "$SSO_TOKEN" != "null" ]]; then
   echo "✅ Token SSO capturado correctamente." | tee -a "$REPORT_FILE"
 else

@@ -1,5 +1,6 @@
-=== Reporte de Pruebas API Mi Telcel (Mon Oct 19 13:33:20 CST 2026) ===
+=== Reporte de Pruebas API Mi Telcel (Sat Nov  7 23:37:51 CST 2026) ===
 SSO Login HTTP Status: 200
+⚠️ WebLogin 8443 sin token (F5 Bot Defense), autenticando vía OIDC (/sso/authorize -> /sso/token)...
 ✅ Token SSO capturado correctamente.
 Token Exchange HTTP Status: 200
 ✅ Tokens MTL y B2F obtenidos correctamente.
@@ -9,4 +10,8 @@ Endpoint Home Flow (B2F) HTTP Status: 200
 Endpoint Consumo Details HTTP Status: 200
 Endpoint Paquetes Activos HTTP Status: 200
 Endpoint Factura/MiPlan HTTP Status: 200
+Plan: Telcel Libre 5 | Fecha de corte: 28 de noviembre | Vigencia: Faltan 21 días para el próximo corte
+  - Bucket [0-0-0]: Datos de mi plan -> Total: 20 GB | Usados: 9.1 GB | Disponibles: 10.9 GB
+  - Bucket [0-1-0]: PROMO 50% DE DATOS UPSELL LIBRE -> Total: 10 GB | Usados: 0 MB | Disponibles: 10 GB
+  - Bucket [0-2-0]: PROMO 50% DE DATOS 24 MDP -> Total: 5 GB | Usados: 5 GB | Disponibles: 0 MB
 ✅ Esquema de llaves extraído en artifacts/schema_summary.json

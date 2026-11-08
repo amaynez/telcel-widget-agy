@@ -1,0 +1,31 @@
+# src
+
+## Overview
+Standalone iOS Scriptable widget scripts and reusable CommonJS carrier modules for Mi Telcel (`MiTelcelWidget.js`), Mi Bait (`MiBaitWidget.js`), Mi Movistar (`MiMovistarWidget.js`), and Mi AT&T (`MiATTWidget.js`), plus the interactive Keychain credential reset script (`ResetearPassword.js`). Part of the root technical blueprint ([`../README_TECH.md`](../README_TECH.md)).
+
+## Interface
+- `[src/MiTelcelWidget.js:module.exports]` `{ fetchTelcelData, parseTelcelResponse, createWidget, loadCache, getCredentials, validateTelcelCredentials, requestTelcel }`
+- `[src/MiBaitWidget.js:module.exports]` `{ fetchBaitData, parseBaitResponse, createWidget, loadCache, fetchServiceKey, CONFIG, getCredentials, validateBaitCredentials, requestBait, requestText }`
+- `[src/MiMovistarWidget.js:module.exports]` `{ fetchMovistarData, parseMovistarResponse, decryptMovistarContent, extractGuardKey, fetchGuardKey, getGuardKey, createWidget, loadCache, validateMovistarCredentials, validateMovistarSession, loginWithWebView, getSessionToken, getCredentials, requestMovistar }`
+- `[src/MiATTWidget.js:module.exports]` `{ fetchATTData, parseATTResponse, aesEncrypt, aesDecrypt, evpBytesToKey, md5, extractSessionKey, createWidget, loadCache, validateATTCredentials, getCredentials, requestATT, CONFIG }`
+- `[src/ResetearPassword.js:KEYCHAIN_KEYS]` Top-level mapping of carrier display names to Keychain keys (`Mi Telcel`: `["TELCEL_PASS", "TELCEL_PHONE"]`, `Mi Bait`: `["BAIT_PHONE"]`, `Mi Movistar`: `["MOVISTAR_PID", "MOVISTAR_GUARD_KEY"]`, `Mi AT&T`: `["ATT_PASS", "ATT_PHONE"]`).
+
+## Invariants
+- `[src/MiTelcelWidget.js:validateTelcelCredentials]` / `[src/MiTelcelWidget.js:fetchTelcelData]` Always revoke `ssoToken` via `POST https://dev.smapps.mx:9000/sso/revoke` inside a `finally` block whenever a token is acquired.
+- `[src/MiTelcelWidget.js:getCredentials]` / `[src/MiBaitWidget.js:getCredentials]` / `[src/MiATTWidget.js:getCredentials]` / `[src/MiMovistarWidget.js:loginWithWebView]` Normalize phone numbers to the last 10 digits, reject placeholder `'5512345678'` and `'TU_PASSWORD'`, and persist credentials/tokens to iOS `Keychain` only after live upstream validation succeeds.
+- `[src/MiTelcelWidget.js:parseTelcelResponse]` / `[src/MiTelcelWidget.js:createWidget]` Use `1 GB = 1000 MB` for Telcel commercial labels and `1 MB = 1024 KB` for fallback chart data; discover and numerically sort `tabs-plans-v2-plan-name-(\d+-\d+-\d+)` suffixes (preferring non-`web-`), discard empty buckets (`totalMB <= 0 && availableMB <= 0`), default `daysLeft` to `28`, and throw if no active buckets remain.
+- `[src/MiBaitWidget.js:parseBaitResponse]` / `[src/MiBaitWidget.js:createWidget]` Use `1 GB = 1024 MB`; require `payload.success && Array.isArray(payload.data)`; sum only `BestEffort`, `Throttling`, and non-expired `Benefits.offers_detail[]` (`exp >= today`) where `totalMB > 0 || availableMB > 0`; throw if no active data buckets exist.
+- `[src/MiMovistarWidget.js:decryptMovistarContent]` / `[src/MiMovistarWidget.js:parseMovistarResponse]` Require `<base64url_cipher>:<base64url_12B_iv>` format and 32-char `guardKey` for AES-256-GCM decryption (retrying once with freshly fetched `guardKey` on rotation); require non-empty `bolton` array, skip social/voice/SMS boltons, convert with binary `1024` factors, and throw if neither data buckets nor an unlimited data bolton exist.
+- `[src/MiATTWidget.js:evpBytesToKey]` / `[src/MiATTWidget.js:aesEncrypt]` / `[src/MiATTWidget.js:aesDecrypt]` / `[src/MiATTWidget.js:parseATTResponse]` Derive 32-byte key + 16-byte IV via 3-round MD5 over password + 8-byte salt with `Salted__` header (`SALTED_MAGIC`, verified in constant time on decrypt); filter allowances to byte-based `UnitType`, exclude social/streaming/voice/SMS and expired items (`endDt < today`), convert with binary `1024` factors, treat `Unlimited === "Y"` or `total >= 99999000` MB as unlimited, and throw if no active data buckets or unlimited flag exist.
+- `[src/MiBaitWidget.js:loadCache]` / `[src/MiMovistarWidget.js:loadCache]` / `[src/MiATTWidget.js:loadCache]` Recalculate `daysLeft` dynamically from persisted `cutoffISO` (`YYYY-MM-DD`) against the current date and set `fromCache = true`.
+- `[src/MiTelcelWidget.js:drawSemicircleGauge]` / `[src/MiBaitWidget.js:drawSemicircleGauge]` / `[src/MiMovistarWidget.js:drawSemicircleGauge]` / `[src/MiATTWidget.js:drawSemicircleGauge]` Clamp `spentRatio` to `[0, 1]`, apply a `0.11` rad gap when `0.04 < clamped < 0.96`, draw only the gray track (`#2C2C2E`) when `spentRatio` is null/non-finite (`totalMB <= 0`), and set error widget URL to `scriptable:///run?scriptName=...` when `!data`.
+
+## Side Effects
+- `[src/MiTelcelWidget.js:getCredentials]` / `[src/MiBaitWidget.js:getCredentials]` / `[src/MiMovistarWidget.js:loginWithWebView]` / `[src/MiATTWidget.js:getCredentials]` / `[src/ResetearPassword.js:picker]` Read, write, and delete keys in iOS `Keychain` (`TELCEL_PHONE`, `TELCEL_PASS`, `BAIT_PHONE`, `MOVISTAR_PID`, `MOVISTAR_GUARD_KEY`, `ATT_PHONE`, `ATT_PASS`) and present interactive Scriptable `Alert` / `WebView` UI when not running inside a widget.
+- `[src/MiTelcelWidget.js:fetchTelcelData]` / `[src/MiBaitWidget.js:fetchBaitData]` / `[src/MiMovistarWidget.js:fetchMovistarData]` / `[src/MiATTWidget.js:fetchATTData]` Perform live HTTP requests to carrier endpoints (`wbl.telcel-id.com:8443`, `mi-telcel.smapps.mx`, `api.journeys.telcel.wavebybemobi.com`, `dev.smapps.mx:9000`, `mibait.com`, `mi.movistar.com.mx`, `miattweb.att.com.mx`).
+- `[src/MiTelcelWidget.js:saveCache]` / `[src/MiBaitWidget.js:saveCache]` / `[src/MiMovistarWidget.js:saveCache]` / `[src/MiATTWidget.js:saveCache]` Read and write JSON cache files (`mitelcel_usage_cache.json`, `mibait_usage_cache.json`, `mimovistar_usage_cache.json`, `miatt_usage_cache.json`) in `FileManager.local().documentsDirectory()`.
+- `[src/MiTelcelWidget.js:main]` / `[src/MiBaitWidget.js:main]` / `[src/MiMovistarWidget.js:main]` / `[src/MiATTWidget.js:main]` Auto-execute at top level when `typeof Script !== "undefined"`, binding widget output via `Script.setWidget(widget)` or presenting preview via `widget.presentSmall()`, and calling `Script.complete()`.
+
+## Verification
+- Run: `node tests/test_parser.mjs`
+- Run: `node tests/test_att.mjs`

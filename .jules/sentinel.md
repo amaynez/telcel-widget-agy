@@ -23,3 +23,8 @@
 **Vulnerability:** Defense-in-depth for magic byte verification in Swift. The `aesDecryptATT` function used string comparison (`String(data: magic, encoding: .ascii) == "Salted__"`) to verify the fixed public header. Security scanners flag non-constant-time comparisons in cryptographic contexts.
 **Learning:** Even for known public constants, using constant-time comparisons satisfies static analysis tools and acts as a defense-in-depth measure. Accumulating differences via bitwise XOR avoids branching and string conversion overhead.
 **Prevention:** Use a constant-time comparison loop (`mismatch |= magic[...] ^ expectedMagic[...]`) for all buffer equality checks in cryptographic functions for scanner compliance and defense-in-depth.
+
+## 2025-02-12 - Detach SSO Token Revocation From the Fetch Task
+**Vulnerability:** SSO token revocation was scheduled with a plain `Task { ... }` inside a `defer` block of an actor method.
+**Learning:** An unstructured `Task {}` does NOT inherit the parent's cancellation (only child tasks and task groups do); it does inherit actor isolation, priority and task-locals. `Task.detached` drops those, so revocation no longer depends on the calling actor context. Treat this as hardening, not a confirmed cancellation bug.
+**Prevention:** Use `Task.detached` for teardown work (HTTP token revocation) that must not depend on the caller's context, and await its `.value` before returning so it is not abandoned.

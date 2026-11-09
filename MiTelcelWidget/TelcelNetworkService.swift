@@ -743,7 +743,7 @@ public actor TelcelNetworkService {
         do {
             defer {
                 if let token = ssoToken {
-                    revocationTask = Task {
+                    revocationTask = Task.detached {
                         await Self.revokeSSOToken(token, session: session)
                     }
                 }

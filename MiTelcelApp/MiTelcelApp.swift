@@ -163,6 +163,7 @@ struct ContentView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .accessibilityElement(children: .combine)
+                                .accessibilityLabel("\(bucket.name): \(String(format: "%.2f", bucket.availableMB / entry.gbDivisor)) GB disponibles, \(String(format: "%.2f", bucket.consumedMB / entry.gbDivisor)) GB usados de \(String(format: "%.1f", bucket.totalMB / entry.gbDivisor)) GB")
                                 .padding(12)
                                 .background(Color.white.opacity(0.08))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))

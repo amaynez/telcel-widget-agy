@@ -24,7 +24,7 @@
 **Learning:** Even for known public constants, using constant-time comparisons satisfies static analysis tools and acts as a defense-in-depth measure. Accumulating differences via bitwise XOR avoids branching and string conversion overhead.
 **Prevention:** Use a constant-time comparison loop (`mismatch |= magic[...] ^ expectedMagic[...]`) for all buffer equality checks in cryptographic functions for scanner compliance and defense-in-depth.
 
-## 2025-02-12 - Fix SSO Token Revocation Lockout Trap in Swift
-**Vulnerability:** A standard `Task` inside a `defer` block was used for SSO token revocation (`Task { await Self.revokeSSOToken(...) }`).
-**Learning:** In Swift structured concurrency, a standard `Task` inherits the cancellation state of its parent. If the network fetch operation is cancelled (e.g., widget timeout), the `defer` block executes but instantly propagates the cancellation to the revocation `Task`, causing the `URLSession` data task within `revokeSSOToken` to abort before firing. This leads to a persistent active session on the server and a potential lockout.
-**Prevention:** Use `Task.detached { ... }` when scheduling critical teardown or cleanup operations (like HTTP token revocation) in `defer` blocks to prevent the task from inheriting the parent's cancellation state.
+## 2025-02-12 - Detach SSO Token Revocation From the Fetch Task
+**Vulnerability:** SSO token revocation was scheduled with a plain `Task { ... }` inside a `defer` block of an actor method.
+**Learning:** An unstructured `Task {}` does NOT inherit the parent's cancellation (only child tasks and task groups do); it does inherit actor isolation, priority and task-locals. `Task.detached` drops those, so revocation no longer depends on the calling actor context. Treat this as hardening, not a confirmed cancellation bug.
+**Prevention:** Use `Task.detached` for teardown work (HTTP token revocation) that must not depend on the caller's context, and await its `.value` before returning so it is not abandoned.

@@ -107,6 +107,8 @@ struct ContentView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel("Bait no requiere contraseña. Solo tu número a 10 dígitos.")
 
                         case .att:
                             Text("Cuenta Mi AT&T")

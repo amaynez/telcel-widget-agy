@@ -356,7 +356,8 @@ public actor TelcelNetworkService {
         guard let data = value.data(using: .utf8) else { return false }
 
         let attrsToUpdate: [CFString: Any] = [
-            kSecValueData: data
+            kSecValueData: data,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
 
         let updateStatus = SecItemUpdate(query as CFDictionary, attrsToUpdate as CFDictionary)

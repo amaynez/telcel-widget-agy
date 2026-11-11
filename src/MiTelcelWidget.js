@@ -456,18 +456,25 @@ function parseTelcelResponse(payload) {
   // Custom split-and-parse sort is >2x faster for suffix keys (e.g. "0-1-1").
   const suffixes = Array.from(activeSuffixes).sort((a, b) => {
     if (a === b) return 0;
-    const aParts = a.split('-');
-    const bParts = b.split('-');
-    const len = Math.min(aParts.length, bParts.length);
-    for (let i = 0; i < len; i++) {
-      const numA = parseInt(aParts[i], 10);
-      const numB = parseInt(bParts[i], 10);
-      if (!Number.isNaN(numA) && !Number.isNaN(numB) && numA !== numB) {
-        return numA - numB;
+    let pA = 0, pB = 0;
+    while (pA < a.length && pB < b.length) {
+      let nA = 0;
+      const sA = pA;
+      while (pA < a.length && a.charCodeAt(pA) !== 45) {
+        nA = nA * 10 + (a.charCodeAt(pA) - 48);
+        pA++;
       }
-      if (aParts[i] !== bParts[i]) return aParts[i] < bParts[i] ? -1 : 1;
+      let nB = 0;
+      const sB = pB;
+      while (pB < b.length && b.charCodeAt(pB) !== 45) {
+        nB = nB * 10 + (b.charCodeAt(pB) - 48);
+        pB++;
+      }
+      if (nA !== nB) return nA - nB;
+      if (pA - sA !== pB - sB) return a.slice(sA, pA) < b.slice(sB, pB) ? -1 : 1; // leading-zero tiebreak
+      pA++; pB++; // skip '-'
     }
-    return aParts.length - bParts.length;
+    return a.length - b.length;
   });
 
   const toMB = (val, unit) => {

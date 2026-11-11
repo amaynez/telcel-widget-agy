@@ -6,3 +6,7 @@
 ## 2026-10-26 - Validate suffix structure when using string slicing in JSON traversal
 **Learning:** Replacing regex match extractions with `.slice(24)` and `.startsWith("web-")` eliminates capture-array allocations in JSON traversal, but omitting structure validation lets non-numeric nodes (`tabs-plans-v2-plan-name-header-info`) pollute `suffixesSet` and break web fallback.
 **Action:** Pair fast prefix slicing with a hoisted `/^\d+-\d+-\d+$/` pattern check before adding suffixes to `suffixesSet` or `webSuffixesSet`.
+
+## $(date +%Y-%m-%d) - Eliminate `.split()` overhead in sorting algorithm
+**Learning:** Using `String.prototype.split()` within an `Array.sort()` comparator function creates thousands of short-lived array allocations, triggering significant Garbage Collection (GC) pressure. This easily pushes execution beyond the strict 30 MB / 15-second iOS limits.
+**Action:** When parsing short delimiter-separated strings (like node suffixes), replace `.split()` calls with custom string parsing logic utilizing zero-allocation inline character evaluation (e.g., using `String.prototype.charCodeAt`).

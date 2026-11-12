@@ -1620,6 +1620,8 @@ public struct MiTelcelWidgetCardContent: View {
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Error: No pudimos cargar tus datos. Toca para revisar tu conexión o credenciales.")
         } else {
             let gap = entry.usageRatio > 0.04 && entry.usageRatio < 0.96 ? 0.03 : 0.0
             VStack(alignment: .leading, spacing: 4) {

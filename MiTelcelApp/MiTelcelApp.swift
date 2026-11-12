@@ -107,6 +107,7 @@ struct ContentView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                            .accessibilityElement(children: .combine)
 
                         case .att:
                             Text("Cuenta Mi AT&T")

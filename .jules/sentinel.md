@@ -28,3 +28,8 @@
 **Vulnerability:** SSO token revocation was scheduled with a plain `Task { ... }` inside a `defer` block of an actor method.
 **Learning:** An unstructured `Task {}` does NOT inherit the parent's cancellation (only child tasks and task groups do); it does inherit actor isolation, priority and task-locals. `Task.detached` drops those, so revocation no longer depends on the calling actor context. Treat this as hardening, not a confirmed cancellation bug.
 **Prevention:** Use `Task.detached` for teardown work (HTTP token revocation) that must not depend on the caller's context, and await its `.value` before returning so it is not abandoned.
+
+## 2026-11-12 - [Strict Keychain Updates]
+**Vulnerability:** Updating Keychain items using `SecItemUpdate` without explicitly specifying `kSecAttrAccessible` left the accessibility attribute unmanaged/inherited.
+**Learning:** `SecItemUpdate` modifies only the attributes explicitly provided in `attrsToUpdate`. When a keychain item is updated, the intended strict accessibility attribute (e.g., `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`) must be reaffirmed to prevent the OS from potentially relaxing access constraints upon update or failing to enforce strict access over the updated data.
+**Prevention:** Always explicitly include `kSecAttrAccessible` in the `attrsToUpdate` dictionary when calling `SecItemUpdate`, even if it was specified during the original `SecItemAdd` call.

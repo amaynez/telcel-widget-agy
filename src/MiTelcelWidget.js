@@ -422,7 +422,6 @@ function parseTelcelResponse(payload) {
   const webSuffixesSet = new Set();
 
   const stack = [payload];
-  const suffixRegex = /^\d+-\d+-\d+$/;
 
   while (stack.length > 0) {
     const node = stack.pop();
@@ -432,10 +431,34 @@ function parseTelcelResponse(payload) {
       byId[node.id] = node.config;
       if (node.id.startsWith("tabs-plans-v2-plan-name-")) {
         const rest = node.id.slice(24);
+        let start = 0;
+        let isWeb = false;
         if (rest.startsWith("web-")) {
-          if (suffixRegex.test(rest.slice(4))) webSuffixesSet.add(rest);
-        } else if (suffixRegex.test(rest)) {
-          suffixesSet.add(rest);
+          start = 4;
+          isWeb = true;
+        }
+        let isSuffix = true;
+        let dashes = 0;
+        let digitsInSegment = 0;
+        for (let i = start; i < rest.length; i++) {
+          const charCode = rest.charCodeAt(i);
+          if (charCode === 45) {
+            if (digitsInSegment === 0) {
+              isSuffix = false;
+              break;
+            }
+            dashes++;
+            digitsInSegment = 0;
+          } else if (charCode >= 48 && charCode <= 57) {
+            digitsInSegment++;
+          } else {
+            isSuffix = false;
+            break;
+          }
+        }
+        if (isSuffix && dashes === 2 && digitsInSegment > 0) {
+          if (isWeb) webSuffixesSet.add(rest);
+          else suffixesSet.add(rest);
         }
       }
     }
@@ -558,17 +581,28 @@ function parseTelcelResponse(payload) {
       rawBuckets.push(b);
     }
   }
-  const isBase = b => /^(web-)?0-0-0$/.test(b.id);
-  const hasActivePromo = rawBuckets.some(b => !isBase(b) && b.availableMB > 0);
+  const isBase = b => b.id === "0-0-0" || b.id === "web-0-0-0";
+
+  let hasActivePromo = false;
+  for (let i = 0; i < rawBuckets.length; i++) {
+    if (!isBase(rawBuckets[i]) && rawBuckets[i].availableMB > 0) {
+      hasActivePromo = true;
+      break;
+    }
+  }
+
   // Al cambiar de plan mid-cycle, Telcel deja la promo anterior en 0 MB disp. Solo descartar si hay otra promo activa.
-  const buckets = rawBuckets.filter(b => isBase(b) || b.availableMB > 0 || !hasActivePromo);
-  for (let i = 0; i < buckets.length; i++) {
-    const b = buckets[i];
-    consumedMB += b.consumedMB;
-    totalMB += b.totalMB;
-    availableMB += b.availableMB;
-    if (daysLeft === null && b.daysLeft !== null) {
-      daysLeft = b.daysLeft;
+  const buckets = [];
+  for (let i = 0; i < rawBuckets.length; i++) {
+    const b = rawBuckets[i];
+    if (isBase(b) || b.availableMB > 0 || !hasActivePromo) {
+      buckets.push(b);
+      consumedMB += b.consumedMB;
+      totalMB += b.totalMB;
+      availableMB += b.availableMB;
+      if (daysLeft === null && b.daysLeft !== null) {
+        daysLeft = b.daysLeft;
+      }
     }
   }
   if (!buckets.length) {

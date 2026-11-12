@@ -10,3 +10,7 @@
 ## $(date +%Y-%m-%d) - Eliminate `.split()` overhead in sorting algorithm
 **Learning:** Using `String.prototype.split()` within an `Array.sort()` comparator function creates thousands of short-lived array allocations, triggering significant Garbage Collection (GC) pressure. This easily pushes execution beyond the strict 30 MB / 15-second iOS limits.
 **Action:** When parsing short delimiter-separated strings (like node suffixes), replace `.split()` calls with custom string parsing logic utilizing zero-allocation inline character evaluation (e.g., using `String.prototype.charCodeAt`).
+
+## 2024-11-11 - Eliminate Regex and Higher-Order Array Functions in Telcel Parser
+**Learning:** Using regular expressions (`/^\d+-\d+-\d+$/`) inside heavy JSON traversal loops (like `parseTelcelResponse`) and chained array methods (`.some()`, `.filter()`) significantly increases execution time and string/function allocations, risking iOS widget termination under the strict 15-second budget and 30 MB memory limit.
+**Action:** Replace regular expressions on hot paths with zero-allocation manual string parsing (`.charCodeAt`) and replace chained higher-order array methods with standard `for` loops to minimize GC pressure.
